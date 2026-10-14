@@ -6,6 +6,12 @@ EditorBuildSettings:
   serializedVersion: 2
   m_Scenes:
   - enabled: 1
+    path: Assets/Scenes/startmenu.unity
+    guid: 627077716aec8c9429b61a95d84d744e
+  - enabled: 1
+    path: Assets/Scenes/DefectSelectScene.unity
+    guid: 9afed060c3209f94b9175c652a9e04d4
+  - enabled: 1
     path: Assets/Scenes/SampleScene.unity
     guid: 99c9720ab356a0642a771bea13969a05
   m_configObjects:

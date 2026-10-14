@@ -5,66 +5,53 @@ using UnityEngine.InputSystem;
 public class PlayerMovement : MonoBehaviour
 {
     [Header("綁定設定")]
-    [Tooltip("請將 Main Camera (掛載 MagicWindowCamera 的物件) 拖曳到這裡")]
     public Transform cameraTransform; 
-    [Tooltip("請將 Input Action Asset 的 Move Action 綁定過來 (對應左搖桿)")]
     public InputActionReference moveAction; 
 
     [Header("移動參數")]
-    public float moveSpeed = 3.0f;
+    public float baseMoveSpeed = 3.0f;
     public float gravity = -9.81f;
 
     private CharacterController controller;
-    private Vector2 inputVector;
     private Vector3 velocity;
+    private float currentMoveSpeed;
+    private bool isDebugMode; // 依然保留這個變數來控制是否允許移動
 
     void Start()
     {
         controller = GetComponent<CharacterController>();
+        float joySens = PlayerPrefs.GetFloat("JoystickSensitivity", 1.0f);
+        currentMoveSpeed = baseMoveSpeed * joySens;
+        isDebugMode = PlayerPrefs.GetInt("DebugMode", 0) == 1;
     }
 
-    // 啟動與關閉 Input System 的監聽
-    void OnEnable() 
-    { 
-        if (moveAction != null) moveAction.action.Enable(); 
-    }
-    
-    void OnDisable() 
-    { 
-        if (moveAction != null) moveAction.action.Disable(); 
-    }
+    void OnEnable() { if (moveAction != null) moveAction.action.Enable(); }
+    void OnDisable() { if (moveAction != null) moveAction.action.Disable(); }
 
     void Update()
     {
         if (moveAction == null || cameraTransform == null) return;
 
-        // 1. 讀取實體搖桿的 2D 輸入值 (X為左右，Y為前後)
-        inputVector = moveAction.action.ReadValue<Vector2>();
+        // 【關鍵】：現在這行會自動讀取搖桿 或 WASD，完全不用另外寫程式！
+        Vector2 inputVector = moveAction.action.ReadValue<Vector2>();
 
+        // 如果沒有開啟 Debug Mode 且在電腦上測試，我們可以選擇忽略鍵盤輸入 (或保留方便測試)
+        // 這裡我們直接讓它運作，因為這本來就是 Debug 用的
         if (inputVector.sqrMagnitude > 0.01f)
         {
-            // 2. 取得相機當下的「正前方」與「正右方」
             Vector3 camForward = cameraTransform.forward;
             Vector3 camRight = cameraTransform.right;
 
-            // 3. 將 Y 軸歸零並重新標準化，確保玩家只在水平面上移動 (不會飛起來)
             camForward.y = 0;
             camRight.y = 0;
             camForward.Normalize();
             camRight.Normalize();
 
-            // 4. 將搖桿的輸入映射到相機的方向上
             Vector3 moveDirection = (camForward * inputVector.y + camRight * inputVector.x).normalized;
-
-            // 5. 透過 CharacterController 移動玩家
-            controller.Move(moveDirection * moveSpeed * Time.deltaTime);
+            controller.Move(moveDirection * currentMoveSpeed * Time.deltaTime);
         }
 
-        // 6. 處理簡單的重力，確保玩家會貼在地上
-        if (controller.isGrounded && velocity.y < 0)
-        {
-            velocity.y = -2f; 
-        }
+        if (controller.isGrounded && velocity.y < 0) velocity.y = -2f; 
         velocity.y += gravity * Time.deltaTime;
         controller.Move(velocity * Time.deltaTime);
     }

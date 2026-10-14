@@ -3,85 +3,98 @@ using UnityEngine.InputSystem;
 
 public class MagicWindowCamera : MonoBehaviour
 {
-    // 動態生成的隱形父物件，用來隔離座標系
     private GameObject gyroContainer;
 
     [Header("輸入綁定")]
     public InputActionReference recenterAction;
+    public InputActionReference fineTuneAction;
 
     [Header("橫向視角修正")]
-    [Tooltip("如果是橫向向左 (Landscape Left) 設為 -90；橫向向右 (Landscape Right) 設為 90")]
     public float landscapeZOffset = -90f;
+
+    [Header("搖桿微調設定")]
+    public float baseFineTuneSpeed = 30f;
+    public bool invertY = false;
+
+    private float currentFineTuneSpeed;
+    private float gyroSensitivity = 1.0f;
 
     void Start()
     {
+        float joySens = PlayerPrefs.GetFloat("JoystickSensitivity", 1.0f);
+        currentFineTuneSpeed = baseFineTuneSpeed * joySens;
+        gyroSensitivity = PlayerPrefs.GetFloat("GyroSensitivity", 1.0f);
+
+        // 【關鍵修復】：把建立外盒的程式碼移到外面！
+        // 這樣就算在沒有陀螺儀的電腦編輯器中，依然會建立外盒供鍵盤轉動
+        gyroContainer = new GameObject("GyroContainer");
+        gyroContainer.transform.position = transform.position;
+        gyroContainer.transform.parent = transform.parent; 
+        transform.SetParent(gyroContainer.transform);
+
+        // 接著再檢查是否有陀螺儀
         if (AttitudeSensor.current != null)
         {
             InputSystem.EnableDevice(AttitudeSensor.current);
-            
-            // 1. 在遊戲開始時，動態建立一個隱形的父物件外盒
-            gyroContainer = new GameObject("GyroContainer");
-            
-            // 2. 將外盒對齊相機當前的位置，並繼承原本相機的父層 (PlayerBase -> CameraPivot)
-            gyroContainer.transform.position = transform.position;
-            gyroContainer.transform.parent = transform.parent; 
-            
-            // 3. 把相機塞進這個外盒裡面
-            transform.SetParent(gyroContainer.transform);
-
-            // 延遲0.5秒進行第一次自動校正
             Invoke(nameof(Recenter), 0.5f);
         }
         else
         {
-            Debug.LogError("抓不到姿態感測器。");
+            // 在電腦上測試時會印出這行提示
+            Debug.LogWarning("未偵測到手機陀螺儀。已啟用純搖桿/鍵盤視角模式供編輯器測試。");
         }
     }
 
     void OnEnable() 
     {
-        if (recenterAction != null)
-        {
-            recenterAction.action.Enable();
-            recenterAction.action.performed += ctx => Recenter();
-        }
+        if (recenterAction != null) { recenterAction.action.Enable(); recenterAction.action.performed += ctx => Recenter(); }
+        if (fineTuneAction != null) fineTuneAction.action.Enable();
     }
 
     void OnDisable() 
     {
-        if (recenterAction != null)
-        {
-            recenterAction.action.performed -= ctx => Recenter();
-            recenterAction.action.Disable();
-        }
+        if (recenterAction != null) { recenterAction.action.performed -= ctx => Recenter(); recenterAction.action.Disable(); }
+        if (fineTuneAction != null) fineTuneAction.action.Disable();
     }
 
     void Update()
     {
+        // 1. 處理陀螺儀 (實機上才會有反應)
         if (AttitudeSensor.current != null)
         {
-            // 【關鍵】：相機本身不再做任何數學偏移，單純將右手的陀螺儀轉換為左手座標後，直接套用
             Quaternion deviceAttitude = AttitudeSensor.current.attitude.ReadValue();
-            transform.localRotation = new Quaternion(deviceAttitude.x, deviceAttitude.y, -deviceAttitude.z, -deviceAttitude.w);
+            Quaternion unityRotation = new Quaternion(deviceAttitude.x, deviceAttitude.y, -deviceAttitude.z, -deviceAttitude.w);
+            
+            if (Mathf.Abs(gyroSensitivity - 1.0f) > 0.01f)
+            {
+                unityRotation = Quaternion.SlerpUnclamped(Quaternion.identity, unityRotation, gyroSensitivity);
+            }
+            transform.localRotation = unityRotation;
+        }
+
+        // 2. 處理右搖桿/鍵盤方向鍵微調
+        Vector2 fineTuneInput = Vector2.zero;
+        if (fineTuneAction != null) 
+        {
+            fineTuneInput = fineTuneAction.action.ReadValue<Vector2>();
+        }
+
+        if (fineTuneInput.sqrMagnitude > 0.01f && gyroContainer != null)
+        {
+            // 左右旋轉
+            gyroContainer.transform.Rotate(0f, fineTuneInput.x * currentFineTuneSpeed * Time.deltaTime, 0f, Space.World);
+            // 上下旋轉
+            float pitchDirection = invertY ? 1f : -1f;
+            gyroContainer.transform.Rotate(transform.right, fineTuneInput.y * currentFineTuneSpeed * pitchDirection * Time.deltaTime, Space.World);
         }
     }
 
     public void Recenter()
     {
         if (AttitudeSensor.current == null || gyroContainer == null) return;
-        
-        // 1. 將外盒的基礎角度重置：X軸轉90度(將看天空改為看前方)
         gyroContainer.transform.rotation = Quaternion.Euler(90f, 0f, 0f);
-        
-        // 2. 依照橫向模式，以外盒的自身 Z 軸進行旋轉，把歪斜的畫面轉正
         gyroContainer.transform.Rotate(0f, 0f, landscapeZOffset, Space.Self);
-        
-        // 3. 讀取當前相機在世界座標中的水平偏航角 (Yaw)
         float currentYaw = transform.eulerAngles.y;
-        
-        // 4. 將外盒在世界座標中「反向轉回去」，完成視角正前方的校正
         gyroContainer.transform.Rotate(0f, -currentYaw, 0f, Space.World);
-        
-        Debug.Log("已執行視角校正 (Recenter)");
     }
 }
