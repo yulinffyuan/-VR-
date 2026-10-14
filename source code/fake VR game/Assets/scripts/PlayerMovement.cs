@@ -4,62 +4,118 @@ using UnityEngine.InputSystem;
 [RequireComponent(typeof(CharacterController))]
 public class PlayerMovement : MonoBehaviour
 {
-    [Header("綁定設定")]
-    public Transform cameraTransform; 
-    public InputActionReference moveAction; 
-
-    [Header("移動參數")]
-    public float baseMoveSpeed = 3.0f;
-    public float gravity = -9.81f;
-
-    private CharacterController controller;
-    private Vector3 velocity;
+    [Header("移動設定")]
+    public float baseMoveSpeed = 3.0f; // 基礎移動速度
     private float currentMoveSpeed;
-    private bool isDebugMode; // 依然保留這個變數來控制是否允許移動
+
+    [Header("輸入綁定")]
+    [Tooltip("請將 PlayerControls 裡的 Move Action 拖曳到這裡")]
+    public InputActionReference moveAction;
+
+    [Header("視角參考")]
+    [Tooltip("請拖曳 MainCamera 進來，讓移動方向能根據玩家面對的方向")]
+    public Transform cameraTransform; 
+
+    // 內部元件參考
+    private CharacterController controller;
+    private bool isDebugMode;
+    
+    // 簡單的重力處理
+    private float gravity = -9.81f;
+    private float velocityY = 0f;
 
     void Start()
     {
+        // 自動抓取身上的 CharacterController
         controller = GetComponent<CharacterController>();
-        float joySens = PlayerPrefs.GetFloat("JoystickSensitivity", 1.0f);
-        currentMoveSpeed = baseMoveSpeed * joySens;
-        isDebugMode = PlayerPrefs.GetInt("DebugMode", 0) == 1;
+
+        // 【防呆機制】：如果沒拖曳相機，自動尋找標籤為 MainCamera 的物件
+        if (cameraTransform == null && Camera.main != null)
+        {
+            cameraTransform = Camera.main.transform;
+        }
+
+        // 初始化設定
+        RefreshSettings();
     }
 
-    void OnEnable() { if (moveAction != null) moveAction.action.Enable(); }
-    void OnDisable() { if (moveAction != null) moveAction.action.Disable(); }
+    void OnEnable()
+    {
+        if (moveAction != null && moveAction.action != null) 
+        {
+            moveAction.action.Enable();
+        }
+    }
+
+    void OnDisable()
+    {
+        if (moveAction != null && moveAction.action != null) 
+        {
+            moveAction.action.Disable();
+        }
+    }
+
+    /// <summary>
+    /// 供外部 (如 PauseMenuManager) 呼叫，以即時更新設定
+    /// </summary>
+    public void RefreshSettings()
+    {
+        // 【修正】：移動速度保持獨立，不再乘上視角靈敏度 (JoystickSensitivity)
+        currentMoveSpeed = baseMoveSpeed; 
+        
+        isDebugMode = PlayerPrefs.GetInt("DebugMode", 0) == 1;
+    }
 
     void Update()
     {
-        if (moveAction == null || cameraTransform == null) return;
+        // 1. 如果遊戲暫停 (Time.timeScale == 0)，就不處理移動
+        if (Time.timeScale == 0f) return;
 
-        // 【關鍵】：現在這行會自動讀取搖桿 或 WASD，完全不用另外寫程式！
-        Vector2 inputVector = moveAction.action.ReadValue<Vector2>();
+        // 2. 取得搖桿/鍵盤的移動輸入向量
+        Vector2 input = Vector2.zero;
 
-        // 如果沒有開啟 Debug Mode 且在電腦上測試，我們可以選擇忽略鍵盤輸入 (或保留方便測試)
-        // 這裡我們直接讓它運作，因為這本來就是 Debug 用的
-        if (inputVector.sqrMagnitude > 0.01f)
+        // 【防呆機制】：嚴格檢查 moveAction 是否存在，避免 NullReferenceException
+        if (moveAction != null && moveAction.action != null)
         {
-            Vector3 camForward = cameraTransform.forward;
-            Vector3 camRight = cameraTransform.right;
-
-            camForward.y = 0;
-            camRight.y = 0;
-            camForward.Normalize();
-            camRight.Normalize();
-
-            Vector3 moveDirection = (camForward * inputVector.y + camRight * inputVector.x).normalized;
-            controller.Move(moveDirection * currentMoveSpeed * Time.deltaTime);
+            input = moveAction.action.ReadValue<Vector2>();
         }
 
-        if (controller.isGrounded && velocity.y < 0) velocity.y = -2f; 
-        velocity.y += gravity * Time.deltaTime;
-        controller.Move(velocity * Time.deltaTime);
-    }
+        // 3. 計算移動方向 (根據攝影機朝向)
+        Vector3 moveDirection = Vector3.zero;
 
-    public void RefreshSettings()
-    {
-        float joySens = PlayerPrefs.GetFloat("JoystickSensitivity", 1.0f);
-        currentMoveSpeed = baseMoveSpeed * joySens;
-        isDebugMode = PlayerPrefs.GetInt("DebugMode", 0) == 1;
+        if (cameraTransform != null)
+        {
+            // 取得相機的前方與右方
+            Vector3 forward = cameraTransform.forward;
+            Vector3 right = cameraTransform.right;
+
+            // 【重要】：將 Y 軸強制歸零並重新標準化，防止玩家往上看時「飛天」或往下看時「遁地」
+            forward.y = 0f;
+            right.y = 0f;
+            forward.Normalize();
+            right.Normalize();
+
+            // 根據玩家輸入與相機方向，組合成最終的 3D 移動方向
+            moveDirection = (forward * input.y) + (right * input.x);
+        }
+
+        // 4. 套用移動與重力 (確保緊貼地面)
+        if (controller != null)
+        {
+            if (controller.isGrounded)
+            {
+                velocityY = -2f; // 給予微小向下的力量確保與地面貼合
+            }
+            else
+            {
+                velocityY += gravity * Time.deltaTime; // 自由落體
+            }
+
+            // 合併水平移動與垂直重力
+            Vector3 finalVelocity = (moveDirection * currentMoveSpeed) + (Vector3.up * velocityY);
+            
+            // 執行移動
+            controller.Move(finalVelocity * Time.deltaTime);
+        }
     }
 }
