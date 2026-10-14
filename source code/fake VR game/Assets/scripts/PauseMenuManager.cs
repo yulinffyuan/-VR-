@@ -1,4 +1,5 @@
 using UnityEngine;
+using UnityEngine.UI;
 using UnityEngine.InputSystem;
 using UnityEngine.SceneManagement;
 using UnityEngine.EventSystems;
@@ -10,47 +11,48 @@ public class PauseMenuManager : MonoBehaviour
     public GameObject settingsPanel;
 
     [Header("搖桿焦點設定")]
-    public GameObject firstSelectedPause;    // 拖入 Btn_Resume
-    public GameObject firstSelectedSettings; // 拖入設定面板的第一個元件
+    public GameObject firstSelectedPause;    
+    public GameObject firstSelectedSettings; 
+
+    [Header("設定選單 UI 參考")]
+    public Slider volumeSlider;
+    public Slider gyroSensitivitySlider;
+    public Slider joystickSensitivitySlider;
+    public Toggle touchToggle;
+    public Toggle debugToggle;
+
+    [Header("即時套用目標參考 (新增)")]
+    public GameObject touchCanvas;             // 拖入 TouchUICanvas
+    public MagicWindowCamera cameraScript;     // 拖入 MainCamera
+    public PlayerMovement playerScript;        // 拖入 Player
 
     [Header("輸入綁定")]
-    public InputActionReference pauseAction; // 綁定剛才建立的 Pause Action (Gamepad Start)
+    public InputActionReference pauseAction;
 
     private bool isPaused = false;
     private bool isDebugMode;
 
     void Start()
     {
-        // 確保遊戲開始時選單是隱藏的，時間是正常流動的
         pauseMenuPanel.SetActive(false);
         if (settingsPanel) settingsPanel.SetActive(false);
         Time.timeScale = 1f;
 
-        // 讀取是否開啟了 Debug Mode
-        isDebugMode = PlayerPrefs.GetInt("DebugMode", 0) == 1;
+        LoadSettings();
     }
 
     void OnEnable()
     {
-        if (pauseAction != null)
-        {
-            pauseAction.action.Enable();
-            pauseAction.action.performed += ctx => TogglePause();
-        }
+        if (pauseAction != null) { pauseAction.action.Enable(); pauseAction.action.performed += ctx => TogglePause(); }
     }
 
     void OnDisable()
     {
-        if (pauseAction != null)
-        {
-            pauseAction.action.performed -= ctx => TogglePause();
-            pauseAction.action.Disable();
-        }
+        if (pauseAction != null) { pauseAction.action.performed -= ctx => TogglePause(); pauseAction.action.Disable(); }
     }
 
     void Update()
     {
-        // 【Debug 模式】：允許使用鍵盤 ESC 鍵來觸發暫停
         if (isDebugMode && Keyboard.current != null && Keyboard.current.escapeKey.wasPressedThisFrame)
         {
             TogglePause();
@@ -59,28 +61,31 @@ public class PauseMenuManager : MonoBehaviour
 
     public void TogglePause()
     {
+        if (settingsPanel != null && settingsPanel.activeSelf)
+        {
+            CloseSettings();
+            return;
+        }
+
         if (isPaused) ResumeGame();
         else PauseGame();
     }
 
-    // --- 選單控制邏輯 ---
-
     public void PauseGame()
     {
         isPaused = true;
-        Time.timeScale = 0f; // 凍結遊戲時間 (物理、移動等基於 Time.deltaTime 的運算會停止)
+        Time.timeScale = 0f; 
         
         pauseMenuPanel.SetActive(true);
         if (settingsPanel) settingsPanel.SetActive(false);
 
-        // 將搖桿焦點設定到「繼續遊戲」按鈕
         EventSystem.current.SetSelectedGameObject(firstSelectedPause);
     }
 
     public void ResumeGame()
     {
         isPaused = false;
-        Time.timeScale = 1f; // 恢復遊戲時間
+        Time.timeScale = 1f; 
         
         pauseMenuPanel.SetActive(false);
         if (settingsPanel) settingsPanel.SetActive(false);
@@ -91,30 +96,69 @@ public class PauseMenuManager : MonoBehaviour
         pauseMenuPanel.SetActive(false);
         if (settingsPanel) settingsPanel.SetActive(true);
         
-        // 將搖桿焦點轉移到設定面板
         EventSystem.current.SetSelectedGameObject(firstSelectedSettings);
     }
 
     public void CloseSettings()
     {
+        SaveSettings(); // 關閉時儲存並即時套用
+        
         if (settingsPanel) settingsPanel.SetActive(false);
         pauseMenuPanel.SetActive(true);
         
-        // 將搖桿焦點轉回暫停選單
         EventSystem.current.SetSelectedGameObject(firstSelectedPause);
     }
 
-    // --- 場景切換邏輯 ---
+    public void SaveSettings()
+    {
+        if (volumeSlider != null) PlayerPrefs.SetFloat("Volume", volumeSlider.value);
+        if (gyroSensitivitySlider != null) PlayerPrefs.SetFloat("GyroSensitivity", gyroSensitivitySlider.value);
+        if (joystickSensitivitySlider != null) PlayerPrefs.SetFloat("JoystickSensitivity", joystickSensitivitySlider.value);
+        if (touchToggle != null) PlayerPrefs.SetInt("TouchEnabled", touchToggle.isOn ? 1 : 0);
+        if (debugToggle != null) PlayerPrefs.SetInt("DebugMode", debugToggle.isOn ? 1 : 0);
+        
+        PlayerPrefs.Save();
+        isDebugMode = PlayerPrefs.GetInt("DebugMode", 0) == 1;
+
+        // 【關鍵修復】：即時套用最新設定到遊戲中
+        ApplySettingsToGame();
+
+        Debug.Log("遊戲內設定已儲存並即時套用");
+    }
+
+    private void ApplySettingsToGame()
+    {
+        // 1. 即時顯示或隱藏虛擬搖桿 UI
+        if (touchCanvas != null && touchToggle != null)
+        {
+            touchCanvas.SetActive(touchToggle.isOn);
+        }
+
+        // 2. 通知相機與移動腳本更新靈敏度與觸控狀態
+        if (cameraScript != null) cameraScript.RefreshSettings();
+        if (playerScript != null) playerScript.RefreshSettings();
+    }
+
+    private void LoadSettings()
+    {
+        if (volumeSlider != null) volumeSlider.value = PlayerPrefs.GetFloat("Volume", 1.0f);
+        if (gyroSensitivitySlider != null) gyroSensitivitySlider.value = PlayerPrefs.GetFloat("GyroSensitivity", 1.0f);
+        if (joystickSensitivitySlider != null) joystickSensitivitySlider.value = PlayerPrefs.GetFloat("JoystickSensitivity", 1.0f);
+        if (touchToggle != null) touchToggle.isOn = PlayerPrefs.GetInt("TouchEnabled", 0) == 1;
+        if (debugToggle != null) debugToggle.isOn = PlayerPrefs.GetInt("DebugMode", 0) == 1;
+
+        isDebugMode = PlayerPrefs.GetInt("DebugMode", 0) == 1;
+    }
 
     public void ReturnToDefectSelect()
     {
-        Time.timeScale = 1f; // 【重要】：換場景前必須把時間恢復，否則下個場景會卡死
-        SceneManager.LoadScene(1); // 假設 Index 1 是 DefectSelectScene
+        Time.timeScale = 1f; 
+        SceneManager.LoadScene(1); 
     }
 
     public void ReturnToMainMenu()
     {
-        Time.timeScale = 1f; // 【重要】：換場景前必須把時間恢復
-        SceneManager.LoadScene(0); // 假設 Index 0 是 MainMenu
+        Time.timeScale = 1f; 
+        SceneManager.LoadScene(0); 
     }
 }

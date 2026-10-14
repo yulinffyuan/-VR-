@@ -55,4 +55,11 @@ public class PlayerMovement : MonoBehaviour
         velocity.y += gravity * Time.deltaTime;
         controller.Move(velocity * Time.deltaTime);
     }
+
+    public void RefreshSettings()
+    {
+        float joySens = PlayerPrefs.GetFloat("JoystickSensitivity", 1.0f);
+        currentMoveSpeed = baseMoveSpeed * joySens;
+        isDebugMode = PlayerPrefs.GetInt("DebugMode", 0) == 1;
+    }
 }
