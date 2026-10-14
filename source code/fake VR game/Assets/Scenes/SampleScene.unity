@@ -1489,7 +1489,7 @@ MonoBehaviour:
   cameraTransform: {fileID: 330585546}
   moveAction: {fileID: 5053255108315355363, guid: c67513f7de7aeb54baf7db0fb6cde618, type: 3}
   moveSpeed: 3
-  gravity: 1
+  gravity: -0.5
 --- !u!143 &2116574003
 CharacterController:
   m_ObjectHideFlags: 0
