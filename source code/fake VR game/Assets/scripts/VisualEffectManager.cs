@@ -1,6 +1,6 @@
 using UnityEngine;
 using UnityEngine.Rendering;
-using UnityEngine.Rendering.Universal; // 必須引入才能動態控制 URP 細部參數
+using UnityEngine.Rendering.Universal; 
 using UnityEngine.InputSystem;
 
 public class VisualEffectManager : MonoBehaviour
@@ -11,7 +11,7 @@ public class VisualEffectManager : MonoBehaviour
     public Volume migraineVolume; 
     public Volume ketamineVolume; 
     public Volume hyperopiaVolume; 
-    public Volume shroomsVolume; // 新增致幻蘑菇 Volume
+    public Volume shroomsVolume; 
 
     [Header("3D 遮罩與相機參考")]
     public GameObject migraineMaskObject; 
@@ -28,11 +28,8 @@ public class VisualEffectManager : MonoBehaviour
     public float floatSpeed = 1.2f;
 
     [Header("致幻蘑菇奇幻參數")]
-    [Tooltip("色彩流動與變換的速度")]
     public float shroomHueSpeed = 0.5f; 
-    [Tooltip("環境與身體一起呼吸的速度")]
     public float shroomBreatheSpeed = 2.0f;
-    [Tooltip("呼吸時視角縮放的幅度 (營造合一感)")]
     public float shroomFovAmplitude = 3f;
 
     private bool isColorBlindActive = false;
@@ -40,13 +37,14 @@ public class VisualEffectManager : MonoBehaviour
     private bool isMigraineActive = false; 
     private bool isKetamineActive = false; 
     private bool isHyperopiaActive = false; 
-    private bool isShroomsActive = false; // 新增蘑菇狀態
+    private bool isShroomsActive = false; 
 
     // 用來暫存蘑菇 Volume 裡的 ColorAdjustments，以便動態修改
     private ColorAdjustments shroomsColor; 
 
     void Start()
     {
+        // 1. 預設將所有濾鏡權重與狀態歸零
         if (colorBlindVolume != null) colorBlindVolume.weight = 0f;
         if (myopiaVolume != null) myopiaVolume.weight = 0f;
         if (migraineVolume != null) migraineVolume.weight = 0f;
@@ -56,14 +54,19 @@ public class VisualEffectManager : MonoBehaviour
         if (shroomsVolume != null) 
         {
             shroomsVolume.weight = 0f;
-            // 嘗試從 Profile 中取得 ColorAdjustments 組件
             shroomsVolume.profile.TryGet(out shroomsColor);
         }
         
         if (migraineMaskObject != null) migraineMaskObject.SetActive(false);
+        
+        // 確保全局錯覺預設是關閉的
+        ReversePhiRenderFeature.isGlobalActive = false;
 
+        // 2. 讀取玩家選擇
         int selectedDefect = PlayerPrefs.GetInt("SelectedDefect", 0);
+        Debug.Log("遊戲開始，載入障礙模式：" + selectedDefect);
 
+        // 3. 根據選擇啟用
         switch (selectedDefect)
         {
             case 1: isColorBlindActive = true; break;
@@ -74,7 +77,10 @@ public class VisualEffectManager : MonoBehaviour
                 break;
             case 4: isKetamineActive = true; break;
             case 5: isHyperopiaActive = true; break; 
-            case 6: isShroomsActive = true; break; // 編號 6 為致幻蘑菇
+            case 6: isShroomsActive = true; break; 
+            case 7: 
+                ReversePhiRenderFeature.isGlobalActive = true; 
+                break; 
         }
     }
 
@@ -107,13 +113,11 @@ public class VisualEffectManager : MonoBehaviour
             }
         }
 
-        // 【致幻蘑菇邏輯】：色彩扭曲與環境呼吸
+        // 【致幻蘑菇邏輯】
         if (shroomsVolume != null && shroomsVolume.weight > 0.01f)
         {
-            // 動態改變 FOV 產生規律、輕微的環境呼吸感 (比K他命快且輕柔)
             currentTargetFOV += Mathf.Sin(Time.time * shroomBreatheSpeed) * shroomFovAmplitude * shroomsVolume.weight;
 
-            // 動態改變色相 (Hue Shift)，範圍在 -180 到 180 之間，產生色彩瘋狂流動疊加的幻覺
             if (shroomsColor != null)
             {
                 shroomsColor.hueShift.value = Mathf.Sin(Time.time * shroomHueSpeed) * 180f * shroomsVolume.weight;
@@ -121,18 +125,17 @@ public class VisualEffectManager : MonoBehaviour
         }
         else if (shroomsColor != null)
         {
-            // 沒啟動時將色相歸零
             shroomsColor.hueShift.value = 0f;
         }
 
-        // 應用相機變更
-        if (mainCamera != null)
+        // 應用相機變更 (若遊戲暫停，時間停止時不強硬蓋寫相機數值)
+        if (mainCamera != null && Time.timeScale > 0f)
         {
             mainCamera.fieldOfView = currentTargetFOV;
             mainCamera.transform.localPosition = currentLocalPos;
         }
 
-        // 【Debug 用】
+        // 【Debug 用】：鍵盤按鍵測試
         if (Keyboard.current != null)
         {
             if (Keyboard.current.cKey.wasPressedThisFrame) ToggleColorBlind();
@@ -140,7 +143,8 @@ public class VisualEffectManager : MonoBehaviour
             if (Keyboard.current.vKey.wasPressedThisFrame) ToggleMigraineAura(); 
             if (Keyboard.current.kKey.wasPressedThisFrame) ToggleKetamine(); 
             if (Keyboard.current.hKey.wasPressedThisFrame) ToggleHyperopia(); 
-            if (Keyboard.current.sKey.wasPressedThisFrame) ToggleShrooms(); // 按 S 鍵測試蘑菇
+            if (Keyboard.current.sKey.wasPressedThisFrame) ToggleShrooms(); 
+            if (Keyboard.current.pKey.wasPressedThisFrame) ReversePhiRenderFeature.isGlobalActive = !ReversePhiRenderFeature.isGlobalActive;
         }
     }
 
@@ -157,11 +161,24 @@ public class VisualEffectManager : MonoBehaviour
     public void ToggleMyopia() => isMyopiaActive = !isMyopiaActive;
     public void ToggleHyperopia() => isHyperopiaActive = !isHyperopiaActive; 
     public void ToggleKetamine() => isKetamineActive = !isKetamineActive;
-    public void ToggleShrooms() => isShroomsActive = !isShroomsActive; // 蘑菇切換
+    public void ToggleShrooms() => isShroomsActive = !isShroomsActive;
     
     public void ToggleMigraineAura()
     {
         isMigraineActive = !isMigraineActive;
         if (migraineMaskObject != null) migraineMaskObject.SetActive(isMigraineActive);
+    }
+
+    public void ResetAllEffects()
+    {
+        isColorBlindActive = false;
+        isMyopiaActive = false;
+        isMigraineActive = false;
+        isKetamineActive = false;
+        isHyperopiaActive = false;
+        isShroomsActive = false;
+        ReversePhiRenderFeature.isGlobalActive = false;
+        
+        if (migraineMaskObject != null) migraineMaskObject.SetActive(false);
     }
 }
