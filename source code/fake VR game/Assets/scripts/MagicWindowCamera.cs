@@ -68,16 +68,31 @@ public class MagicWindowCamera : MonoBehaviour
         isTouchEnabled = PlayerPrefs.GetInt("TouchEnabled", 0) == 1;
     }
 
+// 新增這個專屬的接收方法
+    private void OnRecenterPerformed(InputAction.CallbackContext ctx)
+    {
+        Recenter();
+    }
+
     void OnEnable() 
     {
-        if (recenterAction != null) { recenterAction.action.Enable(); recenterAction.action.performed += ctx => Recenter(); }
-        if (fineTuneAction != null) fineTuneAction.action.Enable();
+        if (recenterAction != null && recenterAction.action != null) 
+        { 
+            recenterAction.action.Enable(); 
+            // 改用具名函式綁定
+            recenterAction.action.performed += OnRecenterPerformed; 
+        }
+        if (fineTuneAction != null && fineTuneAction.action != null) fineTuneAction.action.Enable();
     }
 
     void OnDisable() 
     {
-        if (recenterAction != null) { recenterAction.action.performed -= ctx => Recenter(); recenterAction.action.Disable(); }
-        if (fineTuneAction != null) fineTuneAction.action.Disable();
+        if (recenterAction != null && recenterAction.action != null) 
+        { 
+            // 精準解除綁定
+            recenterAction.action.performed -= OnRecenterPerformed; 
+        }
+        if (fineTuneAction != null && fineTuneAction.action != null) fineTuneAction.action.Disable();
     }
 
     void Update()

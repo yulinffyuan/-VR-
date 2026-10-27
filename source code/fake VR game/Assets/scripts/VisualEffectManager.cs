@@ -1,5 +1,6 @@
 using UnityEngine;
 using UnityEngine.Rendering;
+using UnityEngine.Rendering.Universal; // 必須引入才能動態控制 URP 細部參數
 using UnityEngine.InputSystem;
 
 public class VisualEffectManager : MonoBehaviour
@@ -8,114 +9,159 @@ public class VisualEffectManager : MonoBehaviour
     public Volume colorBlindVolume;
     public Volume myopiaVolume;
     public Volume migraineVolume; 
+    public Volume ketamineVolume; 
+    public Volume hyperopiaVolume; 
+    public Volume shroomsVolume; // 新增致幻蘑菇 Volume
 
-    [Header("3D 遮罩物件參考")]
-    [Tooltip("請將 Main Camera 底下的 MigraineAuraMask 拖曳到這裡")]
-    public GameObject migraineMaskObject; // 新增遮罩物件參考
+    [Header("3D 遮罩與相機參考")]
+    public GameObject migraineMaskObject; 
+    public Camera mainCamera; 
 
-    [Header("切換設定")]
+    [Header("一般切換設定")]
     public float transitionSpeed = 2.0f; 
-    
+
+    [Header("K他命解離參數")]
+    public float baseFOV = 60f;
+    public float maxFovShift = 25f; 
+    public float ketamineFovSpeed = 0.5f;
+    public float floatAmplitude = 0.25f; 
+    public float floatSpeed = 1.2f;
+
+    [Header("致幻蘑菇奇幻參數")]
+    [Tooltip("色彩流動與變換的速度")]
+    public float shroomHueSpeed = 0.5f; 
+    [Tooltip("環境與身體一起呼吸的速度")]
+    public float shroomBreatheSpeed = 2.0f;
+    [Tooltip("呼吸時視角縮放的幅度 (營造合一感)")]
+    public float shroomFovAmplitude = 3f;
+
     private bool isColorBlindActive = false;
     private bool isMyopiaActive = false;
     private bool isMigraineActive = false; 
+    private bool isKetamineActive = false; 
+    private bool isHyperopiaActive = false; 
+    private bool isShroomsActive = false; // 新增蘑菇狀態
 
-void Start()
+    // 用來暫存蘑菇 Volume 裡的 ColorAdjustments，以便動態修改
+    private ColorAdjustments shroomsColor; 
+
+    void Start()
     {
-        // 預設將所有權重歸零
         if (colorBlindVolume != null) colorBlindVolume.weight = 0f;
         if (myopiaVolume != null) myopiaVolume.weight = 0f;
         if (migraineVolume != null) migraineVolume.weight = 0f;
+        if (ketamineVolume != null) ketamineVolume.weight = 0f;
+        if (hyperopiaVolume != null) hyperopiaVolume.weight = 0f;
+        
+        if (shroomsVolume != null) 
+        {
+            shroomsVolume.weight = 0f;
+            // 嘗試從 Profile 中取得 ColorAdjustments 組件
+            shroomsVolume.profile.TryGet(out shroomsColor);
+        }
+        
         if (migraineMaskObject != null) migraineMaskObject.SetActive(false);
 
-        // 讀取玩家在選擇場景設定的障礙類型 (預設為 0 正常)
         int selectedDefect = PlayerPrefs.GetInt("SelectedDefect", 0);
 
-        // 根據選擇直接啟用對應的布林值
         switch (selectedDefect)
         {
-            case 1:
-                isColorBlindActive = true;
-                break;
-            case 2:
-                isMyopiaActive = true;
-                break;
-            case 3:
+            case 1: isColorBlindActive = true; break;
+            case 2: isMyopiaActive = true; break;
+            case 3: 
                 isMigraineActive = true;
                 if (migraineMaskObject != null) migraineMaskObject.SetActive(true);
                 break;
-            default:
-                // 0 = 正常，不開啟任何濾鏡
-                break;
+            case 4: isKetamineActive = true; break;
+            case 5: isHyperopiaActive = true; break; 
+            case 6: isShroomsActive = true; break; // 編號 6 為致幻蘑菇
         }
-        
-        Debug.Log("遊戲開始，載入障礙模式：" + selectedDefect);
     }
+
     void Update()
     {
-        // 1. 平滑漸變邏輯：色盲
-        if (colorBlindVolume != null)
+        // 1. 一般 Volume 權重漸變
+        UpdateVolumeWeight(colorBlindVolume, isColorBlindActive);
+        UpdateVolumeWeight(myopiaVolume, isMyopiaActive);
+        UpdateVolumeWeight(migraineVolume, isMigraineActive);
+        UpdateVolumeWeight(hyperopiaVolume, isHyperopiaActive); 
+        UpdateVolumeWeight(shroomsVolume, isShroomsActive); 
+
+        // 2. 動態運算 FOV 與 位移 (融合 K他命與蘑菇的狀態)
+        float currentTargetFOV = baseFOV;
+        Vector3 currentLocalPos = Vector3.zero;
+
+        // 【K他命邏輯】
+        if (ketamineVolume != null)
         {
-            float targetWeight = isColorBlindActive ? 1.0f : 0.0f;
-            colorBlindVolume.weight = Mathf.MoveTowards(colorBlindVolume.weight, targetWeight, transitionSpeed * Time.deltaTime);
+            float targetKWeight = isKetamineActive ? 1.0f : 0.0f;
+            ketamineVolume.weight = Mathf.MoveTowards(ketamineVolume.weight, targetKWeight, transitionSpeed * Time.deltaTime);
+
+            if (ketamineVolume.weight > 0.01f)
+            {
+                currentTargetFOV += Mathf.Sin(Time.time * ketamineFovSpeed) * maxFovShift * ketamineVolume.weight;
+                
+                float floatY = Mathf.Sin(Time.time * floatSpeed) * floatAmplitude * ketamineVolume.weight;
+                float floatX = Mathf.Cos(Time.time * floatSpeed * 0.7f) * (floatAmplitude * 0.6f) * ketamineVolume.weight;
+                currentLocalPos = new Vector3(floatX, floatY, 0f);
+            }
         }
 
-        // 2. 平滑漸變邏輯：近視
-        if (myopiaVolume != null)
+        // 【致幻蘑菇邏輯】：色彩扭曲與環境呼吸
+        if (shroomsVolume != null && shroomsVolume.weight > 0.01f)
         {
-            float targetWeight = isMyopiaActive ? 1.0f : 0.0f;
-            myopiaVolume.weight = Mathf.MoveTowards(myopiaVolume.weight, targetWeight, transitionSpeed * Time.deltaTime);
+            // 動態改變 FOV 產生規律、輕微的環境呼吸感 (比K他命快且輕柔)
+            currentTargetFOV += Mathf.Sin(Time.time * shroomBreatheSpeed) * shroomFovAmplitude * shroomsVolume.weight;
+
+            // 動態改變色相 (Hue Shift)，範圍在 -180 到 180 之間，產生色彩瘋狂流動疊加的幻覺
+            if (shroomsColor != null)
+            {
+                shroomsColor.hueShift.value = Mathf.Sin(Time.time * shroomHueSpeed) * 180f * shroomsVolume.weight;
+            }
+        }
+        else if (shroomsColor != null)
+        {
+            // 沒啟動時將色相歸零
+            shroomsColor.hueShift.value = 0f;
         }
 
-        // 3. 平滑漸變邏輯：偏頭痛預兆 (Volume)
-        if (migraineVolume != null)
+        // 應用相機變更
+        if (mainCamera != null)
         {
-            float targetWeight = isMigraineActive ? 1.0f : 0.0f;
-            migraineVolume.weight = Mathf.MoveTowards(migraineVolume.weight, targetWeight, transitionSpeed * Time.deltaTime);
+            mainCamera.fieldOfView = currentTargetFOV;
+            mainCamera.transform.localPosition = currentLocalPos;
         }
 
-        // 【Debug 用】：鍵盤按鍵測試 (避開 WASD)
+        // 【Debug 用】
         if (Keyboard.current != null)
         {
             if (Keyboard.current.cKey.wasPressedThisFrame) ToggleColorBlind();
             if (Keyboard.current.mKey.wasPressedThisFrame) ToggleMyopia();
             if (Keyboard.current.vKey.wasPressedThisFrame) ToggleMigraineAura(); 
+            if (Keyboard.current.kKey.wasPressedThisFrame) ToggleKetamine(); 
+            if (Keyboard.current.hKey.wasPressedThisFrame) ToggleHyperopia(); 
+            if (Keyboard.current.sKey.wasPressedThisFrame) ToggleShrooms(); // 按 S 鍵測試蘑菇
         }
     }
 
-    // --- 切換方法供外部呼叫 ---
-
-    public void ToggleColorBlind()
+    private void UpdateVolumeWeight(Volume vol, bool isActive)
     {
-        isColorBlindActive = !isColorBlindActive;
-        Debug.Log("紅綠色盲狀態：" + (isColorBlindActive ? "開啟" : "關閉"));
+        if (vol != null)
+        {
+            float targetWeight = isActive ? 1.0f : 0.0f;
+            vol.weight = Mathf.MoveTowards(vol.weight, targetWeight, transitionSpeed * Time.deltaTime);
+        }
     }
 
-    public void ToggleMyopia()
-    {
-        isMyopiaActive = !isMyopiaActive;
-        Debug.Log("近視狀態：" + (isMyopiaActive ? "開啟" : "關閉"));
-    }
-
+    public void ToggleColorBlind() => isColorBlindActive = !isColorBlindActive;
+    public void ToggleMyopia() => isMyopiaActive = !isMyopiaActive;
+    public void ToggleHyperopia() => isHyperopiaActive = !isHyperopiaActive; 
+    public void ToggleKetamine() => isKetamineActive = !isKetamineActive;
+    public void ToggleShrooms() => isShroomsActive = !isShroomsActive; // 蘑菇切換
+    
     public void ToggleMigraineAura()
     {
         isMigraineActive = !isMigraineActive;
-        
-        // 【關鍵】：切換偏頭痛狀態時，同步開啟或關閉前置遮罩物件
-        if (migraineMaskObject != null)
-        {
-            migraineMaskObject.SetActive(isMigraineActive);
-        }
-        
-        Debug.Log("偏頭痛視覺預兆狀態：" + (isMigraineActive ? "開啟" : "關閉"));
-    }
-
-    public void ResetAllEffects()
-    {
-        isColorBlindActive = false;
-        isMyopiaActive = false;
-        isMigraineActive = false;
-        if (migraineMaskObject != null) migraineMaskObject.SetActive(false);
-        Debug.Log("已重置所有視覺狀態");
+        if (migraineMaskObject != null) migraineMaskObject.SetActive(isMigraineActive);
     }
 }

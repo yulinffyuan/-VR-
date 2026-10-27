@@ -41,14 +41,29 @@ public class PauseMenuManager : MonoBehaviour
         LoadSettings();
     }
 
+// 新增這個專屬的接收方法
+    private void OnPausePerformed(InputAction.CallbackContext ctx)
+    {
+        TogglePause();
+    }
+
     void OnEnable()
     {
-        if (pauseAction != null) { pauseAction.action.Enable(); pauseAction.action.performed += ctx => TogglePause(); }
+        if (pauseAction != null && pauseAction.action != null)
+        {
+            pauseAction.action.Enable();
+            // 改用具名函式綁定
+            pauseAction.action.performed += OnPausePerformed; 
+        }
     }
 
     void OnDisable()
     {
-        if (pauseAction != null) { pauseAction.action.performed -= ctx => TogglePause(); pauseAction.action.Disable(); }
+        if (pauseAction != null && pauseAction.action != null)
+        {
+            // 精準解除綁定，釋放記憶體與舊指標
+            pauseAction.action.performed -= OnPausePerformed; 
+        }
     }
 
     void Update()
