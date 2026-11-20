@@ -51,7 +51,7 @@ public class MainMenuManager : MonoBehaviour
     public void StartGame()
     {
         SaveSettings(); // 開始前確保設定已儲存
-        SceneManager.LoadScene(1);
+        SceneManager.LoadScene(2);
     }
 
     public void QuitGame()

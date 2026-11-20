@@ -4,31 +4,45 @@ using UnityEngine.EventSystems;
 
 public class DefectSelectManager : MonoBehaviour
 {
-    [Header("搖桿焦點設定")]
-    public GameObject firstSelectedButton; // 拖入 Btn_Normal
+    [Header("場景名稱設定")]
+    public string gameSceneName = "GameScene";
+    public string mainMenuSceneName = "MainMenu";
+
+    [Header("搖桿預設焦點")]
+    [Tooltip("進入此場景時，預設選中的第一個按鈕（會自動觸發該按鈕的浮動科普視窗）")]
+    public GameObject firstSelectedButton;
 
     void Start()
     {
-        // 確保搖桿一進場景就有焦點
-        if (firstSelectedButton != null)
+        // 確保時間軸正常、滑鼠解鎖，且全域錯覺特效已關閉
+        Time.timeScale = 1f;
+        Cursor.lockState = CursorLockMode.None;
+        Cursor.visible = true;
+        ReversePhiRenderFeature.isGlobalActive = false;
+
+        // 自動將搖桿焦點鎖定在第一個按鈕上
+        if (firstSelectedButton != null && EventSystem.current != null)
         {
+            EventSystem.current.SetSelectedGameObject(null);
             EventSystem.current.SetSelectedGameObject(firstSelectedButton);
         }
     }
 
     /// <summary>
-    /// 綁定到按鈕的 OnClick。
-    /// 0:正常, 1:色盲, 2:近視, 3:偏頭痛
+    /// 綁定至各障礙按鈕的 OnClick 事件，傳入對應的編號 (0~7)
     /// </summary>
-    public void SelectDefect(int defectType)
+    public void SelectDefectAndStart(int defectIndex)
     {
-        // 儲存玩家選擇的障礙類型
-        PlayerPrefs.SetInt("SelectedDefect", defectType);
+        PlayerPrefs.SetInt("SelectedDefect", defectIndex);
         PlayerPrefs.Save();
-        
-        Debug.Log("已選擇障礙模式：" + defectType);
-        
-        // 載入遊戲主場景 (Index 2)
-        SceneManager.LoadScene(2);
+        SceneManager.LoadScene(gameSceneName);
+    }
+
+    /// <summary>
+    /// 綁定至「返回主選單」按鈕的 OnClick 事件
+    /// </summary>
+    public void BackToMainMenu()
+    {
+        SceneManager.LoadScene(mainMenuSceneName);
     }
 }
