@@ -402,11 +402,15 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 27311316fde2c98479c4d20a463b0d70, type: 3}
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::DefectButtonInfoTrigger
-  infoPanel: {fileID: 1695121174}
+  infoPanel: {fileID: 1695121177}
   infoData:
     title: 
     subtitle: 
+    previewImage: {fileID: 0}
+    previewVideo: {fileID: 0}
+    descriptionHeading: "\u258E \u751F\u7406\u8207\u77E5\u89BA\u6A5F\u5236"
     description: 
+    tipsHeading: "\u258E \u9AD4\u9A57\u89C0\u5BDF\u91CD\u9EDE"
     experienceTips: 
 --- !u!1 &96441013
 GameObject:
@@ -435,7 +439,7 @@ RectTransform:
   m_GameObject: {fileID: 96441013}
   m_LocalRotation: {x: -0, y: -0, z: -0, w: 1}
   m_LocalPosition: {x: 0, y: 0, z: 0}
-  m_LocalScale: {x: 0.73, y: 0.73, z: 0.73}
+  m_LocalScale: {x: 1, y: 1, z: 1}
   m_ConstrainProportionsScale: 1
   m_Children: []
   m_Father: {fileID: 1931257463}
@@ -492,8 +496,8 @@ MonoBehaviour:
   m_faceColor:
     serializedVersion: 2
     rgba: 4294967295
-  m_fontSize: 36
-  m_fontSizeBase: 36
+  m_fontSize: 26
+  m_fontSizeBase: 26
   m_fontWeight: 400
   m_enableAutoSizing: 0
   m_fontSizeMin: 18
@@ -531,7 +535,7 @@ MonoBehaviour:
   m_VertexBufferAutoSizeReduction: 0
   m_useMaxVisibleDescender: 1
   m_pageToDisplay: 1
-  m_margin: {x: 0, y: 0, z: 0, w: 0}
+  m_margin: {x: 0, y: 0, z: -8.21283, w: 0}
   m_isUsingLegacyAnimationComponent: 0
   m_isVolumetricText: 0
   m_hasFontAssetChanged: 0
@@ -761,6 +765,81 @@ CanvasRenderer:
   m_PrefabInstance: {fileID: 0}
   m_PrefabAsset: {fileID: 0}
   m_GameObject: {fileID: 205564052}
+  m_CullTransparentMesh: 1
+--- !u!1 &283815700
+GameObject:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  serializedVersion: 6
+  m_Component:
+  - component: {fileID: 283815701}
+  - component: {fileID: 283815703}
+  - component: {fileID: 283815702}
+  m_Layer: 5
+  m_Name: PreviewImage
+  m_TagString: Untagged
+  m_Icon: {fileID: 0}
+  m_NavMeshLayer: 0
+  m_StaticEditorFlags: 0
+  m_IsActive: 1
+--- !u!224 &283815701
+RectTransform:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 283815700}
+  m_LocalRotation: {x: 0, y: 0, z: 0, w: 1}
+  m_LocalPosition: {x: 0, y: 0, z: 0}
+  m_LocalScale: {x: 1, y: 1, z: 1}
+  m_ConstrainProportionsScale: 0
+  m_Children: []
+  m_Father: {fileID: 1828068756}
+  m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
+  m_AnchorMin: {x: 0, y: 0}
+  m_AnchorMax: {x: 1, y: 1}
+  m_AnchoredPosition: {x: 0, y: 0}
+  m_SizeDelta: {x: 0, y: 0}
+  m_Pivot: {x: 0.5, y: 0.5}
+--- !u!114 &283815702
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 283815700}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: fe87c0e1cc204ed48ad3b37840f39efc, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: UnityEngine.UI::UnityEngine.UI.Image
+  m_Material: {fileID: 0}
+  m_Color: {r: 1, g: 1, b: 1, a: 1}
+  m_RaycastTarget: 1
+  m_RaycastPadding: {x: 0, y: 0, z: 0, w: 0}
+  m_Maskable: 1
+  m_OnCullStateChanged:
+    m_PersistentCalls:
+      m_Calls: []
+  m_Sprite: {fileID: 0}
+  m_Type: 0
+  m_PreserveAspect: 0
+  m_FillCenter: 1
+  m_FillMethod: 4
+  m_FillAmount: 1
+  m_FillClockwise: 1
+  m_FillOrigin: 0
+  m_UseSpriteMesh: 0
+  m_PixelsPerUnitMultiplier: 1
+--- !u!222 &283815703
+CanvasRenderer:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 283815700}
   m_CullTransparentMesh: 1
 --- !u!1 &307117498
 GameObject:
@@ -1222,11 +1301,15 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 27311316fde2c98479c4d20a463b0d70, type: 3}
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::DefectButtonInfoTrigger
-  infoPanel: {fileID: 1695121174}
+  infoPanel: {fileID: 1695121177}
   infoData:
     title: 
     subtitle: 
+    previewImage: {fileID: 0}
+    previewVideo: {fileID: 0}
+    descriptionHeading: "\u258E \u751F\u7406\u8207\u77E5\u89BA\u6A5F\u5236"
     description: 
+    tipsHeading: "\u258E \u9AD4\u9A57\u89C0\u5BDF\u91CD\u9EDE"
     experienceTips: 
 --- !u!1 &618538675
 GameObject:
@@ -1374,11 +1457,15 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 27311316fde2c98479c4d20a463b0d70, type: 3}
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::DefectButtonInfoTrigger
-  infoPanel: {fileID: 1695121174}
+  infoPanel: {fileID: 1695121177}
   infoData:
     title: 
     subtitle: 
+    previewImage: {fileID: 0}
+    previewVideo: {fileID: 0}
+    descriptionHeading: "\u258E \u751F\u7406\u8207\u77E5\u89BA\u6A5F\u5236"
     description: 
+    tipsHeading: "\u258E \u9AD4\u9A57\u89C0\u5BDF\u91CD\u9EDE"
     experienceTips: 
 --- !u!1 &661679838
 GameObject:
@@ -1526,12 +1613,16 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 27311316fde2c98479c4d20a463b0d70, type: 3}
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::DefectButtonInfoTrigger
-  infoPanel: {fileID: 1695121174}
+  infoPanel: {fileID: 1695121177}
   infoData:
     title: "\u6B63\u5E38\u8996\u89BA (Normal Vision)"
     subtitle: "\u57FA\u6E96\u5C0D\u7167\u7D44\uFF1A\u773C\u7403\u5C48\u5149\u3001\u8996\u7DB2\u819C\u795E\u7D93\u7DE8\u78BC\u8207\u5927\u8166\u76AE\u8CEA\u7279\u5FB5\u63D0\u53D6"
-    description: "\u5927\u8166\u611F\u77E5\u5916\u754C\u4E26\u975E\u50CF\u76F8\u6A5F\u88AB\u52D5\u62CD\u7167\uFF0C\u800C\u662F\u4E00\u9023\u4E32\u9AD8\u7CBE\u5BC6\u7684\u751F\u7269\u8A08\u7B97\uFF1A\n\u52D5\u614B\u5C0D\u7126\uFF1A\u89D2\u819C\u63D0\u4F9B\u4E3B\u8981\u975C\u614B\u5C48\u5149\u529B\uFF0C\u800C\u6C34\u6676\u9AD4\u900F\u904E\u776B\u72C0\u808C\u7CBE\u7D30\u8ABF\u7BC0\u539A\u5EA6\uFF0C\u5C07\u767C\u6563\u5149\u7DDA\u7CBE\u78BA\u805A\u7126\u65BC\u4E2D\u592E\u51F9\uFF08Fovea\uFF09\uFF0C\u78BA\u4FDD\u9060\u8FD1\u5404\u5C3A\u5EA6\u7686\u80FD\u6E05\u6670\u6210\u50CF\u3002\n\u8272\u5F69\u91CD\u7D44\uFF1A\u55AE\u4E00\u611F\u5149\u7D30\u80DE\u9075\u5B88\u300C\u55AE\u8B8A\u91CF\u539F\u5247\u300D\uFF08\u50C5\u80FD\u8A08\u7B97\u5149\u5B50\u6578\u91CF\uFF0C\u7121\u6CD5\u5340\u5206\u6CE2\u9577\uFF09\u3002\u5927\u8166\u4F9D\u8CF4 S\u3001M\u3001L \u4E09\u985E\u9310\u7D30\u80DE\u7684\u76F8\u5C0D\u6FC0\u767C\u6BD4\u4F8B\u9032\u884C\u5149\u8B5C\u964D\u7DAD\uFF0C\u518D\u7D93\u7531\u5F8C\u53D7\u5668\u795E\u7D93\u8FF4\u8DEF\u62EE\u6297\uFF0C\u91CD\u7D44\u51FA\u7D05\u2014\u7DA0\u3001\u85CD\u2014\u9EC3\u8207\u660E\u5EA6\u7684\u5C0D\u7ACB\u901A\u9053\u3002\n\u4E16\u754C\u7A69\u5B9A\u6027\uFF1A\u7576\u773C\u7403\u6216\u982D\u90E8\u8F49\u52D5\u6642\uFF0C\u904B\u52D5\u4E2D\u6A1E\u5728\u767C\u51FA\u808C\u8089\u6307\u4EE4\u7684\u540C\u6642\uFF0C\u6703\u8907\u88FD\u4E00\u4EFD\u300C\u4F34\u96A8\u653E\u96FB\uFF08Corollary Discharge, CD\uFF09\u300D\u526F\u672C\u9001\u81F3\u5927\u8166\u611F\u89BA\u6BD4\u8F03\u5668\uFF0C\u7CBE\u6E96\u62B5\u92B7\u8996\u7DB2\u819C\u4E0A\u7684\u7269\u7406\u6ED1\u79FB\u8A0A\u865F\uFF0C\u4F7F\u6211\u5011\u611F\u77E5\u5916\u5728\u4E16\u754C\u662F\u5805\u5B9A\u975C\u6B62\u7684\u3002\n\u7A7A\u9593\u5C3A\u5EA6\u8207\u52D5\u614B\uFF1A\u7D50\u5408\u96D9\u773C\u8996\u5DEE\u3001\u900F\u8996\u8207\u904B\u52D5\u7DDA\u7D22\uFF0C\u5927\u8166\u81EA\u52D5\u5957\u7528\u5927\u5C0F\u2014\u8DDD\u96E2\u7E2E\u653E\u6A5F\u5236\u4EE5\u7DAD\u6301\u7269\u9AD4\u7684\u5927\u5C0F\u6046\u5E38\u6027\uFF1B\u540C\u6642\u85C9\u7531\u6642\u7A7A\u76F8\u95DC\u795E\u7D93\u8FF4\u8DEF\uFF0C\u6B63\u78BA\u89E3\u7B97\u7269\u9AD4\u4F4D\u79FB\u65B9\u5411\u3002"
-    experienceTips: "\u6CE8\u8996\u9577\u5ECA\u6DF1\u8655\u7684\u8996\u529B\u8868\u6D77\u5831\u8207\u8FD1\u8655\u50A2\u4FF1\uFF0C\u611F\u53D7\u5168\u8996\u91CE\u5404\u8DDD\u96E2\u7684\u7CBE\u78BA\u6210\u50CF\u8207\u7ACB\u9AD4\u6DF1\u5EA6\uFF1B\u5617\u8A66\u8F49\u52D5\u8996\u89D2\u8207\u8D70\u52D5\uFF0C\u89C0\u5BDF\u8996\u91CE\u908A\u7DE3\u8207\u5730\u5E73\u7DDA\u7684\u5E73\u7A69\u9328\u5B9A\uFF0C\u4EE5\u4F5C\u70BA\u5F8C\u7E8C\u9AD4\u9A57\u8272\u76F2\u3001\u6563\u7126\u6A21\u7CCA\u8207\u7A7A\u9593\u89E3\u96E2\u7684\u57FA\u6E96\u5C0D\u7167\u3002"
+    previewImage: {fileID: 0}
+    previewVideo: {fileID: 0}
+    descriptionHeading: "\u258E \u751F\u7406\u8207\u77E5\u89BA\u6A5F\u5236"
+    description: "\u8996\u89BA\u4E26\u975E\u55AE\u7D14\u7167\u76F8\uFF0C\u800C\u662F\u5927\u8166\u7684\u4E3B\u52D5\u8A08\u7B97\u3002\u6C34\u6676\u9AD4\u4F9D\u8CF4\u776B\u72C0\u808C\u52D5\u614B\u8ABF\u7126\uFF0C\u5C07\u5149\u7DDA\u7CBE\u6E96\u532F\u805A\u65BC\u4E2D\u592E\u51F9\uFF1B\u8996\u9310\u7D30\u80DE\u9075\u5FAA\u300C\u55AE\u8B8A\u91CF\u539F\u5247\u300D\uFF0C\u5927\u8166\u6BD4\u5C0D S\u3001M\u3001L \u4E09\u7A2E\u7D30\u80DE\u7684\u6FC0\u767C\u6BD4\u4F8B\uFF0C\u91CD\u7D44\u51FA\u5C0D\u7ACB\u8272\u5F69\u901A\u9053\u3002\u8F49\u52D5\u982D\u90E8\u6642\uFF0C\u904B\u52D5\u4E2D\u6A1E\u6703\u540C\u6B65\u767C\u9001\u300C\u4F34\u96A8\u653E\u96FB\u300D\u526F\u672C\u7D66\u611F\u89BA\u6BD4\u8F03\u5668\uFF0C\u7CBE\u78BA\u62B5\u92B7\u8996\u7DB2\u819C\u4E0A\u7684\u7269\u7406\u6ED1\u79FB\uFF0C\u78BA\u4FDD\u4E16\u754C\u7A69\u5B9A\u3002\u6B64\u5916\uFF0C\u9802\u8449\u900F\u904E\u5927\u5C0F\u2014\u8DDD\u96E2\u7E2E\u653E\u6A21\u578B\uFF0C\u81EA\u52D5\u6821\u6B63\u900F\u8996\u7E2E\u653E\u4EE5\u7DAD\u6301\u5E7E\u4F55\u6046\u5E38\u6027\u3002"
+    tipsHeading: "\u258E \u9AD4\u9A57\u89C0\u5BDF\u91CD\u9EDE"
+    experienceTips: "\u8ACB\u6CE8\u8996\u9577\u5ECA\u6DF1\u8655\u7684\u8996\u529B\u8868\u6D77\u5831\u8207\u8FD1\u8655\u50A2\u4FF1\uFF0C\u611F\u53D7\u5168\u8996\u91CE\u5404\u8DDD\u96E2\u7684\u7CBE\u78BA\u6210\u50CF\u8207\u7ACB\u9AD4\u666F\u6DF1\uFF1B\u63A5\u8457\u5617\u8A66\u8D70\u52D5\u8207\u8F49\u5411\uFF0C\u89C0\u5BDF\u8996\u91CE\u908A\u7DE3\u8207\u5730\u5E73\u7DDA\u7684\u5E73\u7A69\u9328\u5B9A\u3002\u672C\u6A21\u5F0F\u70BA\u57FA\u6E96\u5C0D\u7167\u7D44\uFF0C\u9AD4\u9A57\u5404\u9805\u6E05\u6670\u7279\u5FB5\u5F8C\uFF0C\u5373\u53EF\u5207\u63DB\u81F3\u8272\u76F2\u3001\u6563\u7126\u6216\u7A7A\u9593\u89E3\u96E2\u6A21\u5F0F\u9032\u884C\u5C0D\u6BD4\u611F\u53D7\u3002"
 --- !u!1 &689550864
 GameObject:
   m_ObjectHideFlags: 0
@@ -1557,17 +1648,17 @@ RectTransform:
   m_PrefabInstance: {fileID: 0}
   m_PrefabAsset: {fileID: 0}
   m_GameObject: {fileID: 689550864}
-  m_LocalRotation: {x: 0, y: 0, z: 0, w: 1}
+  m_LocalRotation: {x: -0, y: -0, z: -0, w: 1}
   m_LocalPosition: {x: 0, y: 0, z: 0}
-  m_LocalScale: {x: 0.73, y: 0.73, z: 0.73}
+  m_LocalScale: {x: 1, y: 1, z: 1}
   m_ConstrainProportionsScale: 1
   m_Children: []
   m_Father: {fileID: 1695121170}
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
-  m_AnchorMin: {x: 0, y: 0}
-  m_AnchorMax: {x: 0, y: 0}
-  m_AnchoredPosition: {x: 0, y: 0}
-  m_SizeDelta: {x: 0, y: 0}
+  m_AnchorMin: {x: 0, y: 1}
+  m_AnchorMax: {x: 1, y: 1}
+  m_AnchoredPosition: {x: -0.18481445, y: -43.945}
+  m_SizeDelta: {x: -10.369507, y: 47.89}
   m_Pivot: {x: 0.5, y: 0.5}
 --- !u!114 &689550866
 MonoBehaviour:
@@ -1616,8 +1707,8 @@ MonoBehaviour:
   m_faceColor:
     serializedVersion: 2
     rgba: 4294967295
-  m_fontSize: 36
-  m_fontSizeBase: 36
+  m_fontSize: 26
+  m_fontSizeBase: 26
   m_fontWeight: 400
   m_enableAutoSizing: 0
   m_fontSizeMin: 18
@@ -1655,7 +1746,7 @@ MonoBehaviour:
   m_VertexBufferAutoSizeReduction: 0
   m_useMaxVisibleDescender: 1
   m_pageToDisplay: 1
-  m_margin: {x: 0, y: 0, z: 0, w: 0}
+  m_margin: {x: 0, y: 0, z: -116.36926, w: 0}
   m_isUsingLegacyAnimationComponent: 0
   m_isVolumetricText: 0
   m_hasFontAssetChanged: 0
@@ -1694,17 +1785,18 @@ RectTransform:
   m_PrefabInstance: {fileID: 0}
   m_PrefabAsset: {fileID: 0}
   m_GameObject: {fileID: 753405270}
-  m_LocalRotation: {x: 0, y: 0, z: 0, w: 1}
+  m_LocalRotation: {x: -0, y: -0, z: -0, w: 1}
   m_LocalPosition: {x: 0, y: 0, z: 0}
   m_LocalScale: {x: 1, y: 1, z: 1}
   m_ConstrainProportionsScale: 0
-  m_Children: []
+  m_Children:
+  - {fileID: 1931257463}
   m_Father: {fileID: 1695121170}
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
   m_AnchorMin: {x: 0, y: 0}
-  m_AnchorMax: {x: 0, y: 0}
-  m_AnchoredPosition: {x: 0, y: 0}
-  m_SizeDelta: {x: 0, y: 0}
+  m_AnchorMax: {x: 1, y: 1}
+  m_AnchoredPosition: {x: 0, y: -60}
+  m_SizeDelta: {x: -40, y: -160}
   m_Pivot: {x: 0.5, y: 0.5}
 --- !u!114 &753405272
 MonoBehaviour:
@@ -1718,7 +1810,7 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 3312d7739989d2b4e91e6319e9a96d76, type: 3}
   m_Name: 
   m_EditorClassIdentifier: UnityEngine.UI::UnityEngine.UI.RectMask2D
-  m_Padding: {x: 5, y: 5, z: 9.35, w: 0}
+  m_Padding: {x: 0, y: 0, z: 0, w: 0}
   m_Softness: {x: 0, y: 0}
 --- !u!114 &753405273
 MonoBehaviour:
@@ -2409,11 +2501,15 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 27311316fde2c98479c4d20a463b0d70, type: 3}
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::DefectButtonInfoTrigger
-  infoPanel: {fileID: 1695121174}
+  infoPanel: {fileID: 1695121177}
   infoData:
     title: 
     subtitle: 
+    previewImage: {fileID: 0}
+    previewVideo: {fileID: 0}
+    descriptionHeading: "\u258E \u751F\u7406\u8207\u77E5\u89BA\u6A5F\u5236"
     description: 
+    tipsHeading: "\u258E \u9AD4\u9A57\u89C0\u5BDF\u91CD\u9EDE"
     experienceTips: 
 --- !u!1 &1101932516
 GameObject:
@@ -2773,11 +2869,15 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 27311316fde2c98479c4d20a463b0d70, type: 3}
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::DefectButtonInfoTrigger
-  infoPanel: {fileID: 1695121174}
+  infoPanel: {fileID: 1695121177}
   infoData:
     title: 
     subtitle: 
+    previewImage: {fileID: 0}
+    previewVideo: {fileID: 0}
+    descriptionHeading: "\u258E \u751F\u7406\u8207\u77E5\u89BA\u6A5F\u5236"
     description: 
+    tipsHeading: "\u258E \u9AD4\u9A57\u89C0\u5BDF\u91CD\u9EDE"
     experienceTips: 
 --- !u!1 &1424015442
 GameObject:
@@ -3000,11 +3100,15 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 27311316fde2c98479c4d20a463b0d70, type: 3}
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::DefectButtonInfoTrigger
-  infoPanel: {fileID: 1695121174}
+  infoPanel: {fileID: 1695121177}
   infoData:
     title: "\u6E2C\u8A66"
     subtitle: "\u6E2C\u8A66"
-    description: "\u7E3D\u4E4B\u5C31\u662F\u5F88\u591A\u7684\u6E2C\u8A66"
+    previewImage: {fileID: 0}
+    previewVideo: {fileID: 0}
+    descriptionHeading: "\u258E \u751F\u7406\u8207\u77E5\u89BA\u6A5F\u5236"
+    description: "\u7E3D\u4E4B\u5C31\u662F\u5F88\u591A\u7684\u6E2C\u8A66\u7E3D\u4E4B\u5C31\u662F\u5F88\u591A\u7684\u6E2C\u8A66\u7E3D\u4E4B\u5C31\u662F\u5F88\u591A\u7684\u6E2C\u8A66\u7E3D\u4E4B\u5C31\u662F\u5F88\u591A\u7684\u6E2C\u8A66\u7E3D\u4E4B\u5C31\u662F\u5F88\u591A\u7684\u6E2C\u8A66\u7E3D\u4E4B\u5C31\u662F\u5F88\u591A\u7684\u6E2C\u8A66"
+    tipsHeading: "\u258E \u9AD4\u9A57\u89C0\u5BDF\u91CD\u9EDE"
     experienceTips: "\u5566\u5566\u5566\u5566\u5566\u5566\u5566\u5566\u5566\u5566\u5566"
 --- !u!1 &1458344785
 GameObject:
@@ -3704,11 +3808,15 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 27311316fde2c98479c4d20a463b0d70, type: 3}
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::DefectButtonInfoTrigger
-  infoPanel: {fileID: 1695121174}
+  infoPanel: {fileID: 1695121177}
   infoData:
     title: 
     subtitle: 
+    previewImage: {fileID: 0}
+    previewVideo: {fileID: 0}
+    descriptionHeading: "\u258E \u751F\u7406\u8207\u77E5\u89BA\u6A5F\u5236"
     description: 
+    tipsHeading: "\u258E \u9AD4\u9A57\u89C0\u5BDF\u91CD\u9EDE"
     experienceTips: 
 --- !u!1 &1642586578
 GameObject:
@@ -3801,7 +3909,7 @@ GameObject:
   - component: {fileID: 1695121173}
   - component: {fileID: 1695121172}
   - component: {fileID: 1695121171}
-  - component: {fileID: 1695121174}
+  - component: {fileID: 1695121177}
   - component: {fileID: 1695121176}
   - component: {fileID: 1695121175}
   m_Layer: 5
@@ -3826,13 +3934,12 @@ RectTransform:
   - {fileID: 689550865}
   - {fileID: 1867532300}
   - {fileID: 753405271}
-  - {fileID: 1931257463}
   m_Father: {fileID: 1779691082}
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
-  m_AnchorMin: {x: 0.5, y: 0.5}
-  m_AnchorMax: {x: 0.5, y: 0.5}
-  m_AnchoredPosition: {x: 6, y: 0}
-  m_SizeDelta: {x: 450, y: 0}
+  m_AnchorMin: {x: 0, y: 1}
+  m_AnchorMax: {x: 1, y: 1}
+  m_AnchoredPosition: {x: 6, y: -706.2}
+  m_SizeDelta: {x: -1944.3695, y: 0}
   m_Pivot: {x: 0.5, y: 0.5}
 --- !u!225 &1695121171
 CanvasGroup:
@@ -3861,7 +3968,7 @@ MonoBehaviour:
   m_Material: {fileID: 0}
   m_Color: {r: 0.1, g: 0.1, b: 0.1, a: 0.78431374}
   m_RaycastTarget: 1
-  m_RaycastPadding: {x: 0, y: 0, z: 0, w: 0}
+  m_RaycastPadding: {x: 20, y: 20, z: 20, w: 20}
   m_Maskable: 1
   m_OnCullStateChanged:
     m_PersistentCalls:
@@ -3884,32 +3991,6 @@ CanvasRenderer:
   m_PrefabAsset: {fileID: 0}
   m_GameObject: {fileID: 1695121169}
   m_CullTransparentMesh: 1
---- !u!114 &1695121174
-MonoBehaviour:
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 1695121169}
-  m_Enabled: 1
-  m_EditorHideFlags: 0
-  m_Script: {fileID: 11500000, guid: 77018daf5211ce647a6ecf91b59a853c, type: 3}
-  m_Name: 
-  m_EditorClassIdentifier: Assembly-CSharp::DefectInfoPanel
-  titleText: {fileID: 689550866}
-  subtitleText: {fileID: 1867532301}
-  descriptionText: {fileID: 1796590508}
-  tipsText: {fileID: 96441015}
-  textScrollRect: {fileID: 753405273}
-  preferredWidth: 800
-  minSideWidth: 120
-  maxHeight: 50
-  outerVerticalPadding: 15
-  buttonSpacing: 2
-  screenMargin: 10
-  mouseWheelPixels: 60
-  rightStickPixelsPerSec: 350
-  fadeDuration: 0.2
 --- !u!114 &1695121175
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -3931,25 +4012,58 @@ MonoBehaviour:
   m_PrefabInstance: {fileID: 0}
   m_PrefabAsset: {fileID: 0}
   m_GameObject: {fileID: 1695121169}
-  m_Enabled: 1
+  m_Enabled: 0
   m_EditorHideFlags: 0
   m_Script: {fileID: 11500000, guid: 59f8146938fff824cb5fd77236b75775, type: 3}
   m_Name: 
   m_EditorClassIdentifier: UnityEngine.UI::UnityEngine.UI.VerticalLayoutGroup
   m_Padding:
-    m_Left: 20
-    m_Right: 20
+    m_Left: 5
+    m_Right: 5
     m_Top: 20
-    m_Bottom: 20
-  m_ChildAlignment: 0
-  m_Spacing: 5
+    m_Bottom: 5
+  m_ChildAlignment: 4
+  m_Spacing: 12
   m_ChildForceExpandWidth: 1
-  m_ChildForceExpandHeight: 1
+  m_ChildForceExpandHeight: 0
   m_ChildControlWidth: 1
   m_ChildControlHeight: 1
   m_ChildScaleWidth: 0
   m_ChildScaleHeight: 0
   m_ReverseArrangement: 0
+--- !u!114 &1695121177
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 1695121169}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 77018daf5211ce647a6ecf91b59a853c, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::DefectInfoPanel
+  titleText: {fileID: 689550866}
+  subtitleText: {fileID: 1867532301}
+  descriptionText: {fileID: 1796590508}
+  tipsText: {fileID: 96441015}
+  mediaContainer: {fileID: 1828068755}
+  previewImageDisplay: {fileID: 283815702}
+  previewVideoDisplay: {fileID: 1986673203}
+  maxMediaHeight: 220
+  horizontalPadding: 20
+  sectionHeadingColor: {r: 0.23113209, g: 0.6787171, b: 1, a: 1}
+  inlineHeadingColor: {r: 0.55, g: 0.85, b: 1, a: 1}
+  textScrollRect: {fileID: 753405273}
+  preferredWidth: 800
+  minSideWidth: 180
+  maxHeight: 550
+  outerVerticalPadding: 160
+  buttonSpacing: 150
+  screenMargin: 150
+  mouseWheelPixels: 80
+  rightStickPixelsPerSec: 400
+  fadeDuration: 0.15
 --- !u!1 &1746813647
 GameObject:
   m_ObjectHideFlags: 0
@@ -4234,7 +4348,7 @@ RectTransform:
   m_GameObject: {fileID: 1796590506}
   m_LocalRotation: {x: -0, y: -0, z: -0, w: 1}
   m_LocalPosition: {x: 0, y: 0, z: 0}
-  m_LocalScale: {x: 0.73, y: 0.73, z: 0.73}
+  m_LocalScale: {x: 1, y: 1, z: 1}
   m_ConstrainProportionsScale: 1
   m_Children: []
   m_Father: {fileID: 1931257463}
@@ -4291,8 +4405,8 @@ MonoBehaviour:
   m_faceColor:
     serializedVersion: 2
     rgba: 4294967295
-  m_fontSize: 36
-  m_fontSizeBase: 36
+  m_fontSize: 26
+  m_fontSizeBase: 26
   m_fontWeight: 400
   m_enableAutoSizing: 0
   m_fontSizeMin: 18
@@ -4490,12 +4604,76 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 27311316fde2c98479c4d20a463b0d70, type: 3}
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::DefectButtonInfoTrigger
-  infoPanel: {fileID: 1695121174}
+  infoPanel: {fileID: 1695121177}
   infoData:
     title: 
     subtitle: 
+    previewImage: {fileID: 0}
+    previewVideo: {fileID: 0}
+    descriptionHeading: "\u258E \u751F\u7406\u8207\u77E5\u89BA\u6A5F\u5236"
     description: 
+    tipsHeading: "\u258E \u9AD4\u9A57\u89C0\u5BDF\u91CD\u9EDE"
     experienceTips: 
+--- !u!1 &1828068755
+GameObject:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  serializedVersion: 6
+  m_Component:
+  - component: {fileID: 1828068756}
+  - component: {fileID: 1828068757}
+  m_Layer: 5
+  m_Name: mediacontainer
+  m_TagString: Untagged
+  m_Icon: {fileID: 0}
+  m_NavMeshLayer: 0
+  m_StaticEditorFlags: 0
+  m_IsActive: 1
+--- !u!224 &1828068756
+RectTransform:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 1828068755}
+  m_LocalRotation: {x: 0, y: 0, z: 0, w: 1}
+  m_LocalPosition: {x: 0, y: 0, z: 0}
+  m_LocalScale: {x: 1, y: 1, z: 1}
+  m_ConstrainProportionsScale: 0
+  m_Children:
+  - {fileID: 283815701}
+  - {fileID: 1986673202}
+  m_Father: {fileID: 1931257463}
+  m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
+  m_AnchorMin: {x: 0, y: 0}
+  m_AnchorMax: {x: 0, y: 0}
+  m_AnchoredPosition: {x: 0, y: 0}
+  m_SizeDelta: {x: 0, y: 0}
+  m_Pivot: {x: 0.5, y: 0.5}
+--- !u!114 &1828068757
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 1828068755}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 306cc8c2b49d7114eaa3623786fc2126, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: UnityEngine.UI::UnityEngine.UI.LayoutElement
+  m_IgnoreLayout: 0
+  m_MinWidth: -1
+  m_MinHeight: -1
+  m_PreferredWidth: -1
+  m_PreferredHeight: -1
+  m_FlexibleWidth: -1
+  m_FlexibleHeight: -1
+  m_LayoutPriority: 1
+  m_MaxWidth: -1
+  m_MaxHeight: -1
 --- !u!1 &1849478122
 GameObject:
   m_ObjectHideFlags: 0
@@ -4558,17 +4736,17 @@ RectTransform:
   m_PrefabInstance: {fileID: 0}
   m_PrefabAsset: {fileID: 0}
   m_GameObject: {fileID: 1867532299}
-  m_LocalRotation: {x: 0, y: 0, z: 0, w: 1}
+  m_LocalRotation: {x: -0, y: -0, z: -0, w: 1}
   m_LocalPosition: {x: 0, y: 0, z: 0}
-  m_LocalScale: {x: 0.73, y: 0.73, z: 0.73}
+  m_LocalScale: {x: 1, y: 1, z: 1}
   m_ConstrainProportionsScale: 1
   m_Children: []
   m_Father: {fileID: 1695121170}
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
-  m_AnchorMin: {x: 0, y: 0}
-  m_AnchorMax: {x: 0, y: 0}
-  m_AnchoredPosition: {x: 0, y: 0}
-  m_SizeDelta: {x: 0, y: 0}
+  m_AnchorMin: {x: 0, y: 1}
+  m_AnchorMax: {x: 1, y: 1}
+  m_AnchoredPosition: {x: -0.18481445, y: -103.835}
+  m_SizeDelta: {x: -10.369507, y: 47.89}
   m_Pivot: {x: 0.5, y: 0.5}
 --- !u!114 &1867532301
 MonoBehaviour:
@@ -4617,8 +4795,8 @@ MonoBehaviour:
   m_faceColor:
     serializedVersion: 2
     rgba: 4294967295
-  m_fontSize: 36
-  m_fontSizeBase: 36
+  m_fontSize: 26
+  m_fontSizeBase: 26
   m_fontWeight: 400
   m_enableAutoSizing: 0
   m_fontSizeMin: 18
@@ -4832,19 +5010,20 @@ RectTransform:
   m_PrefabInstance: {fileID: 0}
   m_PrefabAsset: {fileID: 0}
   m_GameObject: {fileID: 1931257462}
-  m_LocalRotation: {x: 0, y: 0, z: 0, w: 1}
+  m_LocalRotation: {x: -0, y: -0, z: -0, w: 1}
   m_LocalPosition: {x: 0, y: 0, z: 0}
   m_LocalScale: {x: 1, y: 1, z: 1}
   m_ConstrainProportionsScale: 0
   m_Children:
+  - {fileID: 1828068756}
   - {fileID: 1796590507}
   - {fileID: 96441014}
-  m_Father: {fileID: 1695121170}
+  m_Father: {fileID: 753405271}
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
   m_AnchorMin: {x: 0, y: 1}
-  m_AnchorMax: {x: 0, y: 1}
-  m_AnchoredPosition: {x: 224.99997, y: -125.77998}
-  m_SizeDelta: {x: 410, y: 0}
+  m_AnchorMax: {x: 1, y: 1}
+  m_AnchoredPosition: {x: 0, y: 0}
+  m_SizeDelta: {x: 0, y: 0}
   m_Pivot: {x: 0.5, y: 1}
 --- !u!114 &1931257464
 MonoBehaviour:
@@ -4875,10 +5054,10 @@ MonoBehaviour:
   m_Padding:
     m_Left: 0
     m_Right: 0
-    m_Top: 0
+    m_Top: 20
     m_Bottom: 0
   m_ChildAlignment: 0
-  m_Spacing: 0
+  m_Spacing: 30
   m_ChildForceExpandWidth: 1
   m_ChildForceExpandHeight: 0
   m_ChildControlWidth: 1
@@ -4886,6 +5065,78 @@ MonoBehaviour:
   m_ChildScaleWidth: 0
   m_ChildScaleHeight: 0
   m_ReverseArrangement: 0
+--- !u!1 &1986673201
+GameObject:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  serializedVersion: 6
+  m_Component:
+  - component: {fileID: 1986673202}
+  - component: {fileID: 1986673204}
+  - component: {fileID: 1986673203}
+  m_Layer: 5
+  m_Name: PreviewVideo
+  m_TagString: Untagged
+  m_Icon: {fileID: 0}
+  m_NavMeshLayer: 0
+  m_StaticEditorFlags: 0
+  m_IsActive: 1
+--- !u!224 &1986673202
+RectTransform:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 1986673201}
+  m_LocalRotation: {x: 0, y: 0, z: 0, w: 1}
+  m_LocalPosition: {x: 0, y: 0, z: 0}
+  m_LocalScale: {x: 1, y: 1, z: 1}
+  m_ConstrainProportionsScale: 0
+  m_Children: []
+  m_Father: {fileID: 1828068756}
+  m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
+  m_AnchorMin: {x: 0, y: 0}
+  m_AnchorMax: {x: 1, y: 1}
+  m_AnchoredPosition: {x: 0, y: 0}
+  m_SizeDelta: {x: 0, y: 0}
+  m_Pivot: {x: 0.5, y: 0.5}
+--- !u!114 &1986673203
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 1986673201}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 1344c3c82d62a2a41a3576d8abb8e3ea, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: UnityEngine.UI::UnityEngine.UI.RawImage
+  m_Material: {fileID: 0}
+  m_Color: {r: 1, g: 1, b: 1, a: 1}
+  m_RaycastTarget: 1
+  m_RaycastPadding: {x: 0, y: 0, z: 0, w: 0}
+  m_Maskable: 1
+  m_OnCullStateChanged:
+    m_PersistentCalls:
+      m_Calls: []
+  m_Texture: {fileID: 0}
+  m_UVRect:
+    serializedVersion: 2
+    x: 0
+    y: 0
+    width: 1
+    height: 1
+--- !u!222 &1986673204
+CanvasRenderer:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 1986673201}
+  m_CullTransparentMesh: 1
 --- !u!1660057539 &9223372036854775807
 SceneRoots:
   m_ObjectHideFlags: 0

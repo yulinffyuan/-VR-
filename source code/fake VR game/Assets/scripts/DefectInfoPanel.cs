@@ -1,6 +1,8 @@
 using System.Collections;
+using System.Text;
 using UnityEngine;
 using UnityEngine.UI;
+using UnityEngine.Video;
 using UnityEngine.InputSystem;
 using TMPro;
 
@@ -9,8 +11,17 @@ public class DefectInfoData
 {
     public string title;
     public string subtitle;
-    [TextArea(3, 6)] public string description;
-    [TextArea(2, 4)] public string experienceTips;
+
+    [Header("多媒體預覽（選填，若同時設定則優先播放影片）")]
+    public Sprite previewImage;
+    public VideoClip previewVideo;
+
+    [Header("區塊小標題與內文（內文行首加 '## ' 可建立段落小標題）")]
+    public string descriptionHeading = "▎ 生理與知覺機制";
+    [TextArea(3, 8)] public string description;
+
+    public string tipsHeading = "▎ 體驗觀察重點";
+    [TextArea(2, 5)] public string experienceTips;
 }
 
 [RequireComponent(typeof(CanvasGroup))]
@@ -22,23 +33,34 @@ public class DefectInfoPanel : MonoBehaviour
     public TextMeshProUGUI descriptionText;
     public TextMeshProUGUI tipsText;
 
+    [Header("多媒體展示參考")]
+    [Tooltip("包含 PreviewImage 與 PreviewVideo 的父物件")]
+    public GameObject mediaContainer;
+    public Image previewImageDisplay;
+    public RawImage previewVideoDisplay;
+    [Tooltip("圖片/影片在視窗內的最大高度上限")]
+    public float maxMediaHeight = 220f;
+    [Tooltip("左右內距總和 (例如 Left 20 + Right 20 = 40)，用於精準計算媒體比例高度")]
+    public float horizontalPadding = 40f;
+
+    [Header("小標題樣式設定")]
+    public Color sectionHeadingColor = new Color(1f, 0.82f, 0.4f); // 暖金黃色
+    public Color inlineHeadingColor = new Color(0.55f, 0.85f, 1f); // 淺天藍色
+
     [Header("框內文字滾動參考")]
-    [Tooltip("拖入內部的 TextScrollArea（掛有 ScrollRect 的子物件）")]
     public ScrollRect textScrollRect;
 
     [Header("智慧寬高與邊距設定")]
-    public float preferredWidth = 380f;
-    public float minSideWidth = 120f;
-    [Tooltip("外框最大高度，內文超過此高度即啟用框內滾動")]
+    public float preferredWidth = 420f;
+    public float minSideWidth = 150f;
     public float maxHeight = 450f;
-    [Tooltip("外框內除了 TextScrollArea 以外的上下保留高度（例如內距 + 固定標題高度）")]
     public float outerVerticalPadding = 40f;
     public float buttonSpacing = 16f;
-    public float screenMargin = 16f;
+    public float screenMargin = 20f;
 
     [Header("文本滾動速度（像素）")]
-    public float mouseWheelPixels = 60f;
-    public float rightStickPixelsPerSec = 350f;
+    public float mouseWheelPixels = 80f;
+    public float rightStickPixelsPerSec = 400f;
 
     [Header("動畫設定")]
     public float fadeDuration = 0.15f;
@@ -46,6 +68,9 @@ public class DefectInfoPanel : MonoBehaviour
     private CanvasGroup canvasGroup;
     private RectTransform rectTransform;
     private RectTransform parentRect;
+    private LayoutElement mediaLayoutElement;
+    private VideoPlayer videoPlayer;
+    private RenderTexture videoRenderTexture;
     private Coroutine animCoroutine;
     private readonly Vector3[] btnWorldCorners = new Vector3[4];
 
@@ -55,9 +80,17 @@ public class DefectInfoPanel : MonoBehaviour
         rectTransform = GetComponent<RectTransform>();
         parentRect = rectTransform.parent as RectTransform;
 
+        if (textScrollRect == null)
+            textScrollRect = GetComponentInChildren<ScrollRect>(true);
+
+        ContentSizeFitter selfFitter = GetComponent<ContentSizeFitter>();
+        if (selfFitter != null) selfFitter.enabled = false;
+
         rectTransform.anchorMin = new Vector2(0.5f, 0.5f);
         rectTransform.anchorMax = new Vector2(0.5f, 0.5f);
         rectTransform.pivot = new Vector2(0.5f, 0.5f);
+
+        SetupMediaComponents();
 
         ForceWrap(titleText);
         ForceWrap(subtitleText);
@@ -67,6 +100,37 @@ public class DefectInfoPanel : MonoBehaviour
         canvasGroup.alpha = 0f;
         canvasGroup.blocksRaycasts = false;
         canvasGroup.interactable = false;
+    }
+
+    private void SetupMediaComponents()
+    {
+        if (mediaContainer != null)
+        {
+            mediaLayoutElement = mediaContainer.GetComponent<LayoutElement>();
+            if (mediaLayoutElement == null)
+                mediaLayoutElement = mediaContainer.AddComponent<LayoutElement>();
+        }
+
+        if (previewVideoDisplay != null)
+        {
+            videoPlayer = previewVideoDisplay.GetComponent<VideoPlayer>();
+            if (videoPlayer == null)
+                videoPlayer = previewVideoDisplay.gameObject.AddComponent<VideoPlayer>();
+
+            videoPlayer.playOnAwake = false;
+            videoPlayer.isLooping = true;
+            videoPlayer.renderMode = VideoRenderMode.RenderTexture;
+            videoPlayer.audioOutputMode = VideoAudioOutputMode.None; // 預覽預設靜音
+        }
+    }
+
+    void OnDestroy()
+    {
+        if (videoRenderTexture != null)
+        {
+            videoRenderTexture.Release();
+            Destroy(videoRenderTexture);
+        }
     }
 
     void Update()
@@ -80,33 +144,25 @@ public class DefectInfoPanel : MonoBehaviour
 
         if (content == null || viewport == null) return;
 
-        // 只有當文本高度大於可視框高度時才允許滾動
         float scrollableHeight = content.rect.height - viewport.rect.height;
         if (scrollableHeight <= 1f) return;
 
         float scrollPixels = 0f;
 
-        // 1. 滑鼠滾輪
         if (Mouse.current != null)
         {
             float wheelY = Mouse.current.scroll.ReadValue().y;
             if (Mathf.Abs(wheelY) > 0.01f)
-            {
                 scrollPixels += Mathf.Sign(wheelY) * mouseWheelPixels;
-            }
         }
 
-        // 2. 手把右蘑菇頭
         if (Gamepad.current != null)
         {
             float stickY = Gamepad.current.rightStick.ReadValue().y;
             if (Mathf.Abs(stickY) > 0.15f)
-            {
                 scrollPixels += stickY * rightStickPixelsPerSec * Time.unscaledDeltaTime;
-            }
         }
 
-        // 將像素位移換算為正規化滾動進度 (1 = 頂部, 0 = 底部)
         if (Mathf.Abs(scrollPixels) > 0.01f)
         {
             float normalizedDelta = scrollPixels / scrollableHeight;
@@ -121,19 +177,20 @@ public class DefectInfoPanel : MonoBehaviour
         if (tmp == null) return;
         tmp.textWrappingMode = TextWrappingModes.Normal;
         tmp.overflowMode = TextOverflowModes.Overflow;
+        tmp.richText = true;
     }
 
     public void ShowInfo(DefectInfoData data, RectTransform targetButton)
     {
         if (data == null || targetButton == null || parentRect == null) return;
 
-        // 1. 更新文字
+        // 1. 填入標題與格式化小標題內文
         if (titleText != null) titleText.text = data.title;
         if (subtitleText != null) subtitleText.text = data.subtitle;
-        if (descriptionText != null) descriptionText.text = data.description;
-        if (tipsText != null) tipsText.text = data.experienceTips;
+        if (descriptionText != null) descriptionText.text = FormatRichSection(data.descriptionHeading, data.description);
+        if (tipsText != null) tipsText.text = FormatRichSection(data.tipsHeading, data.experienceTips);
 
-        // 2. 取得按鈕在父容器內的邊界
+        // 2. 取得按鈕四邊座標
         targetButton.GetWorldCorners(btnWorldCorners);
         float btnMinX = float.MaxValue, btnMaxX = float.MinValue;
         float btnMinY = float.MaxValue, btnMaxY = float.MinValue;
@@ -153,7 +210,6 @@ public class DefectInfoPanel : MonoBehaviour
         float minY = bounds.yMin + screenMargin;
         float maxY = bounds.yMax - screenMargin;
 
-        // 3. 計算左右剩餘空間與外框寬度
         float spaceToMaxX = maxX - (btnMaxX + buttonSpacing);
         float spaceToMinX = (btnMinX - buttonSpacing) - minX;
 
@@ -163,12 +219,14 @@ public class DefectInfoPanel : MonoBehaviour
         float finalWidth = Mathf.Clamp(availableW, minSideWidth, preferredWidth);
         if (availableW < minSideWidth) finalWidth = Mathf.Max(80f, availableW);
 
-        // 4. 依內文高度調整外框高度（超過 maxHeight 則鎖定外框高度，改由內部滾動）
+        // 3. 更新圖片/影片並依當前寬度計算媒體高度
+        UpdateMediaDisplay(data, finalWidth - horizontalPadding);
+
+        // 4. 計算並限制外框總高度
         float maxScreenHeight = Mathf.Max(150f, maxY - minY);
         float clampedMaxH = Mathf.Min(maxHeight, maxScreenHeight);
         float finalHeight = ApplyWidthAndGetClampedHeight(finalWidth, clampedMaxH);
 
-        // 5. 定位外框
         float targetX = placeTowardMaxX
             ? btnMaxX + buttonSpacing + finalWidth * 0.5f
             : btnMinX - buttonSpacing - finalWidth * 0.5f;
@@ -181,7 +239,6 @@ public class DefectInfoPanel : MonoBehaviour
 
         rectTransform.localPosition = new Vector3(targetX, targetY, 0f);
 
-        // 6. 切換按鈕時，將內部文本滾回最頂端
         if (textScrollRect != null)
         {
             Canvas.ForceUpdateCanvases();
@@ -190,6 +247,100 @@ public class DefectInfoPanel : MonoBehaviour
 
         if (animCoroutine != null) StopCoroutine(animCoroutine);
         animCoroutine = StartCoroutine(FadeIn());
+        StartCoroutine(ResetScrollTopNextFrame());
+    }
+
+    private void UpdateMediaDisplay(DefectInfoData data, float contentWidth)
+    {
+        if (mediaContainer == null) return;
+
+        bool hasVideo = data.previewVideo != null && previewVideoDisplay != null && videoPlayer != null;
+        bool hasImage = !hasVideo && data.previewImage != null && previewImageDisplay != null;
+
+        if (!hasVideo && !hasImage)
+        {
+            if (videoPlayer != null && videoPlayer.isPlaying) videoPlayer.Stop();
+            mediaContainer.SetActive(false);
+            return;
+        }
+
+        mediaContainer.SetActive(true);
+        float aspect = 16f / 9f;
+
+        if (hasVideo)
+        {
+            if (previewImageDisplay != null) previewImageDisplay.gameObject.SetActive(false);
+            previewVideoDisplay.gameObject.SetActive(true);
+
+            int vidW = data.previewVideo.width > 0 ? (int)data.previewVideo.width : 1280;
+            int vidH = data.previewVideo.height > 0 ? (int)data.previewVideo.height : 720;
+            aspect = (float)vidW / vidH;
+
+            if (videoRenderTexture == null || videoRenderTexture.width != vidW || videoRenderTexture.height != vidH)
+            {
+                if (videoRenderTexture != null)
+                {
+                    videoRenderTexture.Release();
+                    Destroy(videoRenderTexture);
+                }
+                videoRenderTexture = new RenderTexture(vidW, vidH, 0);
+                videoRenderTexture.Create();
+            }
+
+            videoPlayer.targetTexture = videoRenderTexture;
+            previewVideoDisplay.texture = videoRenderTexture;
+            videoPlayer.clip = data.previewVideo;
+            videoPlayer.Play();
+        }
+        else if (hasImage)
+        {
+            if (videoPlayer != null && videoPlayer.isPlaying) videoPlayer.Stop();
+            if (previewVideoDisplay != null) previewVideoDisplay.gameObject.SetActive(false);
+
+            previewImageDisplay.gameObject.SetActive(true);
+            previewImageDisplay.sprite = data.previewImage;
+
+            if (data.previewImage.rect.height > 0f)
+                aspect = data.previewImage.rect.width / data.previewImage.rect.height;
+        }
+
+        if (mediaLayoutElement != null)
+        {
+            float idealHeight = Mathf.Max(80f, contentWidth) / Mathf.Max(0.2f, aspect);
+            mediaLayoutElement.preferredHeight = Mathf.Min(idealHeight, maxMediaHeight);
+        }
+    }
+
+    private string FormatRichSection(string sectionHeading, string rawBody)
+    {
+        if (string.IsNullOrWhiteSpace(rawBody)) return string.Empty;
+
+        string secHex = ColorUtility.ToHtmlStringRGB(sectionHeadingColor);
+        string subHex = ColorUtility.ToHtmlStringRGB(inlineHeadingColor);
+        StringBuilder sb = new StringBuilder();
+
+        if (!string.IsNullOrWhiteSpace(sectionHeading))
+        {
+            sb.AppendLine($"<size=115%><b><color=#{secHex}>{sectionHeading}</color></b></size>");
+        }
+
+        string[] lines = rawBody.Split('\n');
+        for (int i = 0; i < lines.Length; i++)
+        {
+            string line = lines[i].TrimEnd('\r');
+            if (line.StartsWith("## "))
+            {
+                string subTitle = line.Substring(3);
+                if (i > 0) sb.AppendLine();
+                sb.AppendLine($"<size=108%><b><color=#{subHex}>● {subTitle}</color></b></size>");
+            }
+            else
+            {
+                sb.AppendLine(line);
+            }
+        }
+
+        return sb.ToString().TrimEnd();
     }
 
     private float ApplyWidthAndGetClampedHeight(float width, float maxAllowedHeight)
@@ -215,7 +366,21 @@ public class DefectInfoPanel : MonoBehaviour
             return finalHeight;
         }
 
-        return rectTransform.rect.height;
+        float fallbackHeight = Mathf.Min(rectTransform.rect.height, maxAllowedHeight);
+        rectTransform.SetSizeWithCurrentAnchors(RectTransform.Axis.Vertical, fallbackHeight);
+        return fallbackHeight;
+    }
+
+    private IEnumerator ResetScrollTopNextFrame()
+    {
+        yield return null;
+        if (textScrollRect != null && textScrollRect.content != null)
+        {
+            textScrollRect.StopMovement();
+            Canvas.ForceUpdateCanvases();
+            textScrollRect.content.anchoredPosition = new Vector2(textScrollRect.content.anchoredPosition.x, 0f);
+            textScrollRect.verticalNormalizedPosition = 1f;
+        }
     }
 
     private IEnumerator FadeIn()
