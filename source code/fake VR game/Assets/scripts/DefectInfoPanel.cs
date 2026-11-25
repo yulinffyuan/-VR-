@@ -1,6 +1,7 @@
 using System.Collections;
 using UnityEngine;
 using UnityEngine.UI;
+using UnityEngine.InputSystem;
 using TMPro;
 
 [System.Serializable]
@@ -21,19 +22,26 @@ public class DefectInfoPanel : MonoBehaviour
     public TextMeshProUGUI descriptionText;
     public TextMeshProUGUI tipsText;
 
-    [Header("智慧寬度與邊距設定")]
-    [Tooltip("空間充足時的理想寬度")]
-    public float preferredWidth = 420f;
-    [Tooltip("空間狹窄時的最小壓縮寬度")]
-    public float minWidth = 240f;
-    [Tooltip("視窗與按鈕之間的間距")]
-    public float buttonSpacing = 20f;
-    [Tooltip("視窗與螢幕四邊保留的安全邊距")]
-    public float screenMargin = 20f;
+    [Header("框內文字滾動參考")]
+    [Tooltip("拖入內部的 TextScrollArea（掛有 ScrollRect 的子物件）")]
+    public ScrollRect textScrollRect;
+
+    [Header("智慧寬高與邊距設定")]
+    public float preferredWidth = 380f;
+    public float minSideWidth = 120f;
+    [Tooltip("外框最大高度，內文超過此高度即啟用框內滾動")]
+    public float maxHeight = 450f;
+    [Tooltip("外框內除了 TextScrollArea 以外的上下保留高度（例如內距 + 固定標題高度）")]
+    public float outerVerticalPadding = 40f;
+    public float buttonSpacing = 16f;
+    public float screenMargin = 16f;
+
+    [Header("文本滾動速度（像素）")]
+    public float mouseWheelPixels = 60f;
+    public float rightStickPixelsPerSec = 350f;
 
     [Header("動畫設定")]
-    public float fadeDuration = 0.18f;
-    public float slideOffsetX = 12f;
+    public float fadeDuration = 0.15f;
 
     private CanvasGroup canvasGroup;
     private RectTransform rectTransform;
@@ -47,99 +55,178 @@ public class DefectInfoPanel : MonoBehaviour
         rectTransform = GetComponent<RectTransform>();
         parentRect = rectTransform.parent as RectTransform;
 
-        // 確保 Anchors 居中，方便統一使用局部座標計算
         rectTransform.anchorMin = new Vector2(0.5f, 0.5f);
         rectTransform.anchorMax = new Vector2(0.5f, 0.5f);
+        rectTransform.pivot = new Vector2(0.5f, 0.5f);
+
+        ForceWrap(titleText);
+        ForceWrap(subtitleText);
+        ForceWrap(descriptionText);
+        ForceWrap(tipsText);
 
         canvasGroup.alpha = 0f;
         canvasGroup.blocksRaycasts = false;
         canvasGroup.interactable = false;
     }
 
+    void Update()
+    {
+        if (canvasGroup.alpha < 0.1f || textScrollRect == null) return;
+
+        RectTransform content = textScrollRect.content;
+        RectTransform viewport = textScrollRect.viewport != null
+            ? textScrollRect.viewport
+            : textScrollRect.GetComponent<RectTransform>();
+
+        if (content == null || viewport == null) return;
+
+        // 只有當文本高度大於可視框高度時才允許滾動
+        float scrollableHeight = content.rect.height - viewport.rect.height;
+        if (scrollableHeight <= 1f) return;
+
+        float scrollPixels = 0f;
+
+        // 1. 滑鼠滾輪
+        if (Mouse.current != null)
+        {
+            float wheelY = Mouse.current.scroll.ReadValue().y;
+            if (Mathf.Abs(wheelY) > 0.01f)
+            {
+                scrollPixels += Mathf.Sign(wheelY) * mouseWheelPixels;
+            }
+        }
+
+        // 2. 手把右蘑菇頭
+        if (Gamepad.current != null)
+        {
+            float stickY = Gamepad.current.rightStick.ReadValue().y;
+            if (Mathf.Abs(stickY) > 0.15f)
+            {
+                scrollPixels += stickY * rightStickPixelsPerSec * Time.unscaledDeltaTime;
+            }
+        }
+
+        // 將像素位移換算為正規化滾動進度 (1 = 頂部, 0 = 底部)
+        if (Mathf.Abs(scrollPixels) > 0.01f)
+        {
+            float normalizedDelta = scrollPixels / scrollableHeight;
+            textScrollRect.verticalNormalizedPosition = Mathf.Clamp01(
+                textScrollRect.verticalNormalizedPosition + normalizedDelta
+            );
+        }
+    }
+
+    private void ForceWrap(TextMeshProUGUI tmp)
+    {
+        if (tmp == null) return;
+        tmp.textWrappingMode = TextWrappingModes.Normal;
+        tmp.overflowMode = TextOverflowModes.Overflow;
+    }
+
     public void ShowInfo(DefectInfoData data, RectTransform targetButton)
     {
         if (data == null || targetButton == null || parentRect == null) return;
 
-        // 1. 填入文字
+        // 1. 更新文字
         if (titleText != null) titleText.text = data.title;
         if (subtitleText != null) subtitleText.text = data.subtitle;
         if (descriptionText != null) descriptionText.text = data.description;
         if (tipsText != null) tipsText.text = data.experienceTips;
 
-        // 2. 取得按鈕四個角在 Canvas 局部空間的座標 (0:左下, 1:左上, 2:右上, 3:右下)
+        // 2. 取得按鈕在父容器內的邊界
         targetButton.GetWorldCorners(btnWorldCorners);
-        Vector3 localBottomLeft = parentRect.InverseTransformPoint(btnWorldCorners[0]);
-        Vector3 localTopRight = parentRect.InverseTransformPoint(btnWorldCorners[2]);
+        float btnMinX = float.MaxValue, btnMaxX = float.MinValue;
+        float btnMinY = float.MaxValue, btnMaxY = float.MinValue;
 
-        float btnLeft = localBottomLeft.x;
-        float btnRight = localTopRight.x;
-        float btnCenterY = (localBottomLeft.y + localTopRight.y) * 0.5f;
-
-        // 3. 取得螢幕(Canvas)可用邊界
-        Rect canvasBounds = parentRect.rect;
-        float minX = canvasBounds.xMin + screenMargin;
-        float maxX = canvasBounds.xMax - screenMargin;
-        float minY = canvasBounds.yMin + screenMargin;
-        float maxY = canvasBounds.yMax - screenMargin;
-
-        // 4. 計算按鈕左右兩側的剩餘可用寬度
-        float spaceRight = maxX - (btnRight + buttonSpacing);
-        float spaceLeft = (btnLeft - buttonSpacing) - minX;
-
-        // 優先放右側；若右側不夠理想寬度且左側空間更大，則自動翻轉到左側
-        bool placeOnRight = (spaceRight >= preferredWidth) || (spaceRight >= spaceLeft);
-        float availableWidth = placeOnRight ? spaceRight : spaceLeft;
-
-        // 5. 動態設定視窗寬度 (介於 minWidth 與 preferredWidth 之間)
-        float finalWidth = Mathf.Clamp(availableWidth, minWidth, preferredWidth);
-        rectTransform.SetSizeWithCurrentAnchors(RectTransform.Axis.Horizontal, finalWidth);
-
-        // 6. 強制重算排版，取得在該寬度與文字量下的真實高度
-        Canvas.ForceUpdateCanvases();
-        LayoutRebuilder.ForceRebuildLayoutImmediate(rectTransform);
-        float finalHeight = rectTransform.rect.height;
-
-        // 7. 依據左右側設定 Pivot 並計算最終座標
-        float targetX;
-        if (placeOnRight)
+        for (int i = 0; i < 4; i++)
         {
-            rectTransform.pivot = new Vector2(0f, 0.5f); // 軸心靠左，往右展開
-            targetX = btnRight + buttonSpacing;
-        }
-        else
-        {
-            rectTransform.pivot = new Vector2(1f, 0.5f); // 軸心靠右，往左展開
-            targetX = btnLeft - buttonSpacing;
+            Vector3 lp = parentRect.InverseTransformPoint(btnWorldCorners[i]);
+            if (lp.x < btnMinX) btnMinX = lp.x;
+            if (lp.x > btnMaxX) btnMaxX = lp.x;
+            if (lp.y < btnMinY) btnMinY = lp.y;
+            if (lp.y > btnMaxY) btnMaxY = lp.y;
         }
 
-        // 8. 限制 Y 軸位置，確保視窗上下絕對不會超出螢幕邊緣
-        float halfHeight = finalHeight * 0.5f;
-        float clampedY = Mathf.Clamp(btnCenterY, minY + halfHeight, maxY - halfHeight);
-        Vector2 targetPos = new Vector2(targetX, clampedY);
+        Rect bounds = parentRect.rect;
+        float minX = bounds.xMin + screenMargin;
+        float maxX = bounds.xMax - screenMargin;
+        float minY = bounds.yMin + screenMargin;
+        float maxY = bounds.yMax - screenMargin;
 
-        // 9. 播放從按鈕旁微微滑出的動畫
+        // 3. 計算左右剩餘空間與外框寬度
+        float spaceToMaxX = maxX - (btnMaxX + buttonSpacing);
+        float spaceToMinX = (btnMinX - buttonSpacing) - minX;
+
+        bool placeTowardMaxX = spaceToMaxX >= spaceToMinX;
+        float availableW = placeTowardMaxX ? spaceToMaxX : spaceToMinX;
+
+        float finalWidth = Mathf.Clamp(availableW, minSideWidth, preferredWidth);
+        if (availableW < minSideWidth) finalWidth = Mathf.Max(80f, availableW);
+
+        // 4. 依內文高度調整外框高度（超過 maxHeight 則鎖定外框高度，改由內部滾動）
+        float maxScreenHeight = Mathf.Max(150f, maxY - minY);
+        float clampedMaxH = Mathf.Min(maxHeight, maxScreenHeight);
+        float finalHeight = ApplyWidthAndGetClampedHeight(finalWidth, clampedMaxH);
+
+        // 5. 定位外框
+        float targetX = placeTowardMaxX
+            ? btnMaxX + buttonSpacing + finalWidth * 0.5f
+            : btnMinX - buttonSpacing - finalWidth * 0.5f;
+
+        float btnCenterY = (btnMinY + btnMaxY) * 0.5f;
+        float halfH = finalHeight * 0.5f;
+        float targetY = (minY + halfH <= maxY - halfH)
+            ? Mathf.Clamp(btnCenterY, minY + halfH, maxY - halfH)
+            : (minY + maxY) * 0.5f;
+
+        rectTransform.localPosition = new Vector3(targetX, targetY, 0f);
+
+        // 6. 切換按鈕時，將內部文本滾回最頂端
+        if (textScrollRect != null)
+        {
+            Canvas.ForceUpdateCanvases();
+            textScrollRect.verticalNormalizedPosition = 1f;
+        }
+
         if (animCoroutine != null) StopCoroutine(animCoroutine);
-        float slideDir = placeOnRight ? -slideOffsetX : slideOffsetX;
-        animCoroutine = StartCoroutine(PlayFloatInAnimation(targetPos, slideDir));
+        animCoroutine = StartCoroutine(FadeIn());
     }
 
-    private IEnumerator PlayFloatInAnimation(Vector2 targetPos, float startOffsetX)
+    private float ApplyWidthAndGetClampedHeight(float width, float maxAllowedHeight)
+    {
+        rectTransform.SetSizeWithCurrentAnchors(RectTransform.Axis.Horizontal, width);
+        Canvas.ForceUpdateCanvases();
+
+        if (textScrollRect != null && textScrollRect.content != null)
+        {
+            RectTransform content = textScrollRect.content;
+            LayoutRebuilder.ForceRebuildLayoutImmediate(content);
+
+            if (titleText != null) titleText.ForceMeshUpdate();
+            if (subtitleText != null) subtitleText.ForceMeshUpdate();
+            if (descriptionText != null) descriptionText.ForceMeshUpdate();
+            if (tipsText != null) tipsText.ForceMeshUpdate();
+
+            LayoutRebuilder.ForceRebuildLayoutImmediate(content);
+
+            float desiredHeight = content.rect.height + outerVerticalPadding;
+            float finalHeight = Mathf.Min(desiredHeight, maxAllowedHeight);
+            rectTransform.SetSizeWithCurrentAnchors(RectTransform.Axis.Vertical, finalHeight);
+            return finalHeight;
+        }
+
+        return rectTransform.rect.height;
+    }
+
+    private IEnumerator FadeIn()
     {
         float elapsed = 0f;
-        Vector2 startPos = targetPos + new Vector2(startOffsetX, 0f);
-
         while (elapsed < fadeDuration)
         {
             elapsed += Time.unscaledDeltaTime;
-            float t = Mathf.Clamp01(elapsed / fadeDuration);
-            float ease = Mathf.SmoothStep(0f, 1f, t);
-
-            canvasGroup.alpha = ease;
-            rectTransform.anchoredPosition = Vector2.Lerp(startPos, targetPos, ease);
+            canvasGroup.alpha = Mathf.Clamp01(elapsed / fadeDuration);
             yield return null;
         }
-
         canvasGroup.alpha = 1f;
-        rectTransform.anchoredPosition = targetPos;
     }
 }
