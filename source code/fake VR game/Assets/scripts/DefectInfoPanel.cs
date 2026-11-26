@@ -1,4 +1,5 @@
 using System.Collections;
+using System.Collections.Generic;
 using System.Text;
 using UnityEngine;
 using UnityEngine.UI;
@@ -6,15 +7,35 @@ using UnityEngine.Video;
 using UnityEngine.InputSystem;
 using TMPro;
 
+public enum DefectMediaType
+{
+    Image,
+    Video
+}
+
+[System.Serializable]
+public class DefectMediaItem
+{
+    [Tooltip("媒體類型（若只拖入圖片或影片其中一項，程式也會自動辨識）")]
+    public DefectMediaType type = DefectMediaType.Image;
+    public Sprite image;
+    public VideoClip video;
+    [Tooltip("選填：顯示在此圖片或影片下方的簡短圖說")]
+    public string caption;
+}
+
 [System.Serializable]
 public class DefectInfoData
 {
     public string title;
     public string subtitle;
 
-    [Header("多媒體預覽（選填，若同時設定則優先播放影片）")]
-    public Sprite previewImage;
-    public VideoClip previewVideo;
+    [Header("多媒體展示清單（可按 + 新增多張圖片或影片）")]
+    public List<DefectMediaItem> mediaItems = new List<DefectMediaItem>();
+
+    // 相容先前已綁定的單一媒體欄位（若 mediaItems 為空時自動讀取）
+    [HideInInspector] public Sprite previewImage;
+    [HideInInspector] public VideoClip previewVideo;
 
     [Header("區塊小標題與內文（內文行首加 '## ' 可建立段落小標題）")]
     public string descriptionHeading = "▎ 生理與知覺機制";
@@ -27,25 +48,39 @@ public class DefectInfoData
 [RequireComponent(typeof(CanvasGroup))]
 public class DefectInfoPanel : MonoBehaviour
 {
+    private class MediaSlotInstance
+    {
+        public GameObject rootObj;
+        public LayoutElement layoutElement;
+        public RectTransform mediaFrameRect;
+        public Image imageView;
+        public AspectRatioFitter imageFitter;
+        public RawImage videoView;
+        public AspectRatioFitter videoFitter;
+        public VideoPlayer videoPlayer;
+        public RenderTexture renderTexture;
+        public TextMeshProUGUI captionText;
+    }
+
     [Header("UI 文字參考")]
     public TextMeshProUGUI titleText;
     public TextMeshProUGUI subtitleText;
     public TextMeshProUGUI descriptionText;
     public TextMeshProUGUI tipsText;
 
-    [Header("多媒體展示參考")]
-    [Tooltip("包含 PreviewImage 與 PreviewVideo 的父物件")]
-    public GameObject mediaContainer;
-    public Image previewImageDisplay;
-    public RawImage previewVideoDisplay;
-    [Tooltip("圖片/影片在視窗內的最大高度上限")]
-    public float maxMediaHeight = 220f;
-    [Tooltip("左右內距總和 (例如 Left 20 + Right 20 = 40)，用於精準計算媒體比例高度")]
+    [Header("多媒體展示設定")]
+    [Tooltip("若有舊版單一 MediaContainer 可拖入，啟動時會自動隱藏改由多媒體清單接管")]
+    public GameObject legacyMediaContainer;
+    [Tooltip("單張圖片/影片的最大顯示高度上限")]
+    public float maxMediaHeight = 360f;
+    [Tooltip("左右內距總和 (例如 Left 20 + Right 20 = 40)，用於計算精準長寬比")]
     public float horizontalPadding = 40f;
+    public float captionFontSize = 22f;
+    public Color captionColor = new Color(0.82f, 0.85f, 0.9f, 1f);
 
     [Header("小標題樣式設定")]
-    public Color sectionHeadingColor = new Color(1f, 0.82f, 0.4f); // 暖金黃色
-    public Color inlineHeadingColor = new Color(0.55f, 0.85f, 1f); // 淺天藍色
+    public Color sectionHeadingColor = new Color(1f, 0.82f, 0.4f);
+    public Color inlineHeadingColor = new Color(0.55f, 0.85f, 1f);
 
     [Header("框內文字滾動參考")]
     public ScrollRect textScrollRect;
@@ -68,11 +103,9 @@ public class DefectInfoPanel : MonoBehaviour
     private CanvasGroup canvasGroup;
     private RectTransform rectTransform;
     private RectTransform parentRect;
-    private LayoutElement mediaLayoutElement;
-    private VideoPlayer videoPlayer;
-    private RenderTexture videoRenderTexture;
     private Coroutine animCoroutine;
     private readonly Vector3[] btnWorldCorners = new Vector3[4];
+    private readonly List<MediaSlotInstance> mediaPool = new List<MediaSlotInstance>();
 
     void Awake()
     {
@@ -86,11 +119,12 @@ public class DefectInfoPanel : MonoBehaviour
         ContentSizeFitter selfFitter = GetComponent<ContentSizeFitter>();
         if (selfFitter != null) selfFitter.enabled = false;
 
+        if (legacyMediaContainer != null)
+            legacyMediaContainer.SetActive(false);
+
         rectTransform.anchorMin = new Vector2(0.5f, 0.5f);
         rectTransform.anchorMax = new Vector2(0.5f, 0.5f);
         rectTransform.pivot = new Vector2(0.5f, 0.5f);
-
-        SetupMediaComponents();
 
         ForceWrap(titleText);
         ForceWrap(subtitleText);
@@ -102,34 +136,15 @@ public class DefectInfoPanel : MonoBehaviour
         canvasGroup.interactable = false;
     }
 
-    private void SetupMediaComponents()
-    {
-        if (mediaContainer != null)
-        {
-            mediaLayoutElement = mediaContainer.GetComponent<LayoutElement>();
-            if (mediaLayoutElement == null)
-                mediaLayoutElement = mediaContainer.AddComponent<LayoutElement>();
-        }
-
-        if (previewVideoDisplay != null)
-        {
-            videoPlayer = previewVideoDisplay.GetComponent<VideoPlayer>();
-            if (videoPlayer == null)
-                videoPlayer = previewVideoDisplay.gameObject.AddComponent<VideoPlayer>();
-
-            videoPlayer.playOnAwake = false;
-            videoPlayer.isLooping = true;
-            videoPlayer.renderMode = VideoRenderMode.RenderTexture;
-            videoPlayer.audioOutputMode = VideoAudioOutputMode.None; // 預覽預設靜音
-        }
-    }
-
     void OnDestroy()
     {
-        if (videoRenderTexture != null)
+        for (int i = 0; i < mediaPool.Count; i++)
         {
-            videoRenderTexture.Release();
-            Destroy(videoRenderTexture);
+            if (mediaPool[i].renderTexture != null)
+            {
+                mediaPool[i].renderTexture.Release();
+                Destroy(mediaPool[i].renderTexture);
+            }
         }
     }
 
@@ -219,8 +234,8 @@ public class DefectInfoPanel : MonoBehaviour
         float finalWidth = Mathf.Clamp(availableW, minSideWidth, preferredWidth);
         if (availableW < minSideWidth) finalWidth = Mathf.Max(80f, availableW);
 
-        // 3. 更新圖片/影片並依當前寬度計算媒體高度
-        UpdateMediaDisplay(data, finalWidth - horizontalPadding);
+        // 3. 依當前寬度建立並更新所有多媒體項目（鎖定長寬比，絕不形變）
+        UpdateMultipleMediaDisplays(data, finalWidth - horizontalPadding);
 
         // 4. 計算並限制外框總高度
         float maxScreenHeight = Mathf.Max(150f, maxY - minY);
@@ -250,65 +265,223 @@ public class DefectInfoPanel : MonoBehaviour
         StartCoroutine(ResetScrollTopNextFrame());
     }
 
-    private void UpdateMediaDisplay(DefectInfoData data, float contentWidth)
+    private void UpdateMultipleMediaDisplays(DefectInfoData data, float contentWidth)
     {
-        if (mediaContainer == null) return;
-
-        bool hasVideo = data.previewVideo != null && previewVideoDisplay != null && videoPlayer != null;
-        bool hasImage = !hasVideo && data.previewImage != null && previewImageDisplay != null;
-
-        if (!hasVideo && !hasImage)
+        // 先停用並隱藏所有已生成的媒體槽位
+        for (int i = 0; i < mediaPool.Count; i++)
         {
-            if (videoPlayer != null && videoPlayer.isPlaying) videoPlayer.Stop();
-            mediaContainer.SetActive(false);
-            return;
+            if (mediaPool[i].videoPlayer != null && mediaPool[i].videoPlayer.isPlaying)
+                mediaPool[i].videoPlayer.Stop();
+            mediaPool[i].rootObj.SetActive(false);
         }
 
-        mediaContainer.SetActive(true);
-        float aspect = 16f / 9f;
+        if (textScrollRect == null || textScrollRect.content == null) return;
 
-        if (hasVideo)
+        // 整理有效的媒體清單（優先使用 mediaItems，若為空則相容讀取舊欄位）
+        List<DefectMediaItem> validItems = new List<DefectMediaItem>();
+        if (data.mediaItems != null && data.mediaItems.Count > 0)
         {
-            if (previewImageDisplay != null) previewImageDisplay.gameObject.SetActive(false);
-            previewVideoDisplay.gameObject.SetActive(true);
-
-            int vidW = data.previewVideo.width > 0 ? (int)data.previewVideo.width : 1280;
-            int vidH = data.previewVideo.height > 0 ? (int)data.previewVideo.height : 720;
-            aspect = (float)vidW / vidH;
-
-            if (videoRenderTexture == null || videoRenderTexture.width != vidW || videoRenderTexture.height != vidH)
+            for (int i = 0; i < data.mediaItems.Count; i++)
             {
-                if (videoRenderTexture != null)
+                var item = data.mediaItems[i];
+                if (item != null && (item.image != null || item.video != null))
+                    validItems.Add(item);
+            }
+        }
+        else if (data.previewVideo != null || data.previewImage != null)
+        {
+            validItems.Add(new DefectMediaItem
+            {
+                type = data.previewVideo != null ? DefectMediaType.Video : DefectMediaType.Image,
+                image = data.previewImage,
+                video = data.previewVideo
+            });
+        }
+
+        if (validItems.Count == 0) return;
+
+        float safeWidth = Mathf.Max(80f, contentWidth);
+
+        for (int i = 0; i < validItems.Count; i++)
+        {
+            DefectMediaItem item = validItems[i];
+            MediaSlotInstance slot = GetOrCreateMediaSlot(i, textScrollRect.content);
+
+            slot.rootObj.SetActive(true);
+            slot.rootObj.transform.SetSiblingIndex(i); // 依序排在 TextContent 最上方
+
+            // 自動判斷該顯示影片還是圖片
+            bool useVideo = (item.type == DefectMediaType.Video && item.video != null)
+                            || (item.video != null && item.image == null);
+
+            float aspect = 16f / 9f;
+
+            if (useVideo)
+            {
+                slot.imageView.gameObject.SetActive(false);
+                slot.videoView.gameObject.SetActive(true);
+
+                int vidW = item.video.width > 0 ? (int)item.video.width : 1280;
+                int vidH = item.video.height > 0 ? (int)item.video.height : 720;
+                aspect = Mathf.Max(0.2f, (float)vidW / vidH);
+
+                if (slot.renderTexture == null || slot.renderTexture.width != vidW || slot.renderTexture.height != vidH)
                 {
-                    videoRenderTexture.Release();
-                    Destroy(videoRenderTexture);
+                    if (slot.renderTexture != null)
+                    {
+                        slot.renderTexture.Release();
+                        Destroy(slot.renderTexture);
+                    }
+                    slot.renderTexture = new RenderTexture(vidW, vidH, 0);
+                    slot.renderTexture.Create();
                 }
-                videoRenderTexture = new RenderTexture(vidW, vidH, 0);
-                videoRenderTexture.Create();
+
+                // 鎖定影片原始長寬比，杜絕形變
+                slot.videoFitter.aspectRatio = aspect;
+                slot.videoPlayer.targetTexture = slot.renderTexture;
+                slot.videoView.texture = slot.renderTexture;
+                slot.videoPlayer.clip = item.video;
+                slot.videoPlayer.Play();
+            }
+            else
+            {
+                slot.videoView.gameObject.SetActive(false);
+                slot.imageView.gameObject.SetActive(true);
+                slot.imageView.sprite = item.image;
+                slot.imageView.preserveAspect = true;
+
+                if (item.image.rect.height > 0f)
+                    aspect = Mathf.Max(0.2f, item.image.rect.width / item.image.rect.height);
+
+                // 鎖定圖片原始長寬比，杜絕形變
+                slot.imageFitter.aspectRatio = aspect;
             }
 
-            videoPlayer.targetTexture = videoRenderTexture;
-            previewVideoDisplay.texture = videoRenderTexture;
-            videoPlayer.clip = data.previewVideo;
-            videoPlayer.Play();
+            // 計算媒體顯示高度（維持精準比例且不超過 maxMediaHeight）
+            float idealMediaHeight = safeWidth / aspect;
+            float finalMediaHeight = Mathf.Min(idealMediaHeight, maxMediaHeight);
+
+            // 處理選填的圖說文字
+            bool hasCaption = !string.IsNullOrWhiteSpace(item.caption);
+            float captionHeight = 0f;
+
+            if (hasCaption)
+            {
+                slot.captionText.gameObject.SetActive(true);
+                slot.captionText.text = item.caption;
+                slot.captionText.ForceMeshUpdate();
+                captionHeight = slot.captionText.GetPreferredValues(safeWidth, 0f).y + 8f;
+
+                slot.mediaFrameRect.offsetMin = new Vector2(0f, captionHeight);
+                slot.mediaFrameRect.offsetMax = Vector2.zero;
+                slot.captionText.rectTransform.sizeDelta = new Vector2(0f, captionHeight);
+            }
+            else
+            {
+                slot.captionText.gameObject.SetActive(false);
+                slot.mediaFrameRect.offsetMin = Vector2.zero;
+                slot.mediaFrameRect.offsetMax = Vector2.zero;
+            }
+
+            slot.layoutElement.preferredHeight = finalMediaHeight + captionHeight;
         }
-        else if (hasImage)
+    }
+
+    private MediaSlotInstance GetOrCreateMediaSlot(int index, RectTransform parentContent)
+    {
+        if (index < mediaPool.Count)
+            return mediaPool[index];
+
+        // 1. 建立單一媒體容器（由 TextContent 的 VerticalLayoutGroup 控制寬度）
+        GameObject slotObj = new GameObject($"MediaSlot_{index}", typeof(RectTransform), typeof(LayoutElement));
+        slotObj.transform.SetParent(parentContent, false);
+        LayoutElement le = slotObj.GetComponent<LayoutElement>();
+
+        // 2. 建立媒體畫面框（預留下方給圖說空間）
+        GameObject frameObj = new GameObject("MediaFrame", typeof(RectTransform));
+        frameObj.transform.SetParent(slotObj.transform, false);
+        RectTransform frameRect = frameObj.GetComponent<RectTransform>();
+        frameRect.anchorMin = Vector2.zero;
+        frameRect.anchorMax = Vector2.one;
+        frameRect.offsetMin = Vector2.zero;
+        frameRect.offsetMax = Vector2.zero;
+
+        // 3. 建立圖片顯示元件 + AspectRatioFitter（FitInParent 確保永不拉伸變形）
+        GameObject imgObj = new GameObject("ImageView", typeof(RectTransform), typeof(Image), typeof(AspectRatioFitter));
+        imgObj.transform.SetParent(frameRect, false);
+        RectTransform imgRect = imgObj.GetComponent<RectTransform>();
+        imgRect.anchorMin = Vector2.zero;
+        imgRect.anchorMax = Vector2.one;
+        imgRect.offsetMin = Vector2.zero;
+        imgRect.offsetMax = Vector2.zero;
+
+        Image img = imgObj.GetComponent<Image>();
+        img.preserveAspect = true;
+        img.maskable = true;
+        img.raycastTarget = false;
+
+        AspectRatioFitter imgFitter = imgObj.GetComponent<AspectRatioFitter>();
+        imgFitter.aspectMode = AspectRatioFitter.AspectMode.FitInParent;
+
+        // 4. 建立影片顯示元件 + AspectRatioFitter + 獨立 VideoPlayer
+        GameObject vidObj = new GameObject("VideoView", typeof(RectTransform), typeof(RawImage), typeof(AspectRatioFitter), typeof(VideoPlayer));
+        vidObj.transform.SetParent(frameRect, false);
+        RectTransform vidRect = vidObj.GetComponent<RectTransform>();
+        vidRect.anchorMin = Vector2.zero;
+        vidRect.anchorMax = Vector2.one;
+        vidRect.offsetMin = Vector2.zero;
+        vidRect.offsetMax = Vector2.zero;
+
+        RawImage rawImg = vidObj.GetComponent<RawImage>();
+        rawImg.maskable = true;
+        rawImg.raycastTarget = false;
+
+        AspectRatioFitter vidFitter = vidObj.GetComponent<AspectRatioFitter>();
+        vidFitter.aspectMode = AspectRatioFitter.AspectMode.FitInParent;
+
+        VideoPlayer vp = vidObj.GetComponent<VideoPlayer>();
+        vp.playOnAwake = false;
+        vp.isLooping = true;
+        vp.renderMode = VideoRenderMode.RenderTexture;
+        vp.audioOutputMode = VideoAudioOutputMode.None;
+
+        // 5. 建立圖說文字（繼承 descriptionText 的中文字型，避免缺字）
+        GameObject capObj = new GameObject("CaptionText", typeof(RectTransform), typeof(TextMeshProUGUI));
+        capObj.transform.SetParent(slotObj.transform, false);
+        RectTransform capRect = capObj.GetComponent<RectTransform>();
+        capRect.anchorMin = new Vector2(0f, 0f);
+        capRect.anchorMax = new Vector2(1f, 0f);
+        capRect.pivot = new Vector2(0.5f, 0f);
+        capRect.anchoredPosition = Vector2.zero;
+
+        TextMeshProUGUI capTmp = capObj.GetComponent<TextMeshProUGUI>();
+        if (descriptionText != null && descriptionText.font != null)
         {
-            if (videoPlayer != null && videoPlayer.isPlaying) videoPlayer.Stop();
-            if (previewVideoDisplay != null) previewVideoDisplay.gameObject.SetActive(false);
-
-            previewImageDisplay.gameObject.SetActive(true);
-            previewImageDisplay.sprite = data.previewImage;
-
-            if (data.previewImage.rect.height > 0f)
-                aspect = data.previewImage.rect.width / data.previewImage.rect.height;
+            capTmp.font = descriptionText.font;
+            capTmp.fontSharedMaterial = descriptionText.fontSharedMaterial;
         }
+        capTmp.fontSize = captionFontSize;
+        capTmp.color = captionColor;
+        capTmp.alignment = TextAlignmentOptions.Center;
+        capTmp.textWrappingMode = TextWrappingModes.Normal;
+        capTmp.maskable = true;
+        capTmp.raycastTarget = false;
 
-        if (mediaLayoutElement != null)
+        var instance = new MediaSlotInstance
         {
-            float idealHeight = Mathf.Max(80f, contentWidth) / Mathf.Max(0.2f, aspect);
-            mediaLayoutElement.preferredHeight = Mathf.Min(idealHeight, maxMediaHeight);
-        }
+            rootObj = slotObj,
+            layoutElement = le,
+            mediaFrameRect = frameRect,
+            imageView = img,
+            imageFitter = imgFitter,
+            videoView = rawImg,
+            videoFitter = vidFitter,
+            videoPlayer = vp,
+            captionText = capTmp
+        };
+
+        mediaPool.Add(instance);
+        return instance;
     }
 
     private string FormatRichSection(string sectionHeading, string rawBody)

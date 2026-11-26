@@ -12,9 +12,12 @@ public class VisualEffectManager : MonoBehaviour
     public Volume ketamineVolume;
     public Volume hyperopiaVolume;
     public Volume shroomsVolume;
+    public Volume macularVolume; // 新增：黃斑部病變 Volume
 
     [Header("3D 遮罩與相機參考")]
     public GameObject migraineMaskObject;
+    [Tooltip("請將 Main Camera 底下的 MacularScotomaMask 拖曳到此欄位")]
+    public MacularScotomaController macularScotoma; // 新增：黃斑部中心暗點控制器
     [Tooltip("請將 Main Camera 拖曳到此欄位，用於控制 FOV 與飄浮位移")]
     public Camera mainCamera;
 
@@ -23,21 +26,14 @@ public class VisualEffectManager : MonoBehaviour
 
     [Header("K他命解離參數")]
     public float baseFOV = 60f;
-    [Tooltip("FOV 變化的最大幅度 (模擬身體變大變小)")]
     public float maxFovShift = 25f;
-    [Tooltip("空間變形的速率")]
     public float ketamineFovSpeed = 0.5f;
-    [Tooltip("上下飄浮的公尺數")]
     public float floatAmplitude = 0.25f;
-    [Tooltip("飄浮的速率")]
     public float floatSpeed = 1.2f;
 
     [Header("致幻蘑菇奇幻參數")]
-    [Tooltip("色彩流動與變換的速度")]
     public float shroomHueSpeed = 0.5f;
-    [Tooltip("環境與身體一起呼吸的速度")]
     public float shroomBreatheSpeed = 2.0f;
-    [Tooltip("呼吸時視角縮放的幅度")]
     public float shroomFovAmplitude = 3f;
 
     private bool isColorBlindActive = false;
@@ -46,17 +42,19 @@ public class VisualEffectManager : MonoBehaviour
     private bool isKetamineActive = false;
     private bool isHyperopiaActive = false;
     private bool isShroomsActive = false;
+    private bool isMacularActive = false; // 新增：黃斑部病變狀態
 
+    private float macularWeight = 0f;
     private ColorAdjustments shroomsColor;
 
     void Start()
     {
-        // 1. 預設將所有濾鏡權重與狀態歸零
         if (colorBlindVolume != null) colorBlindVolume.weight = 0f;
         if (myopiaVolume != null) myopiaVolume.weight = 0f;
         if (migraineVolume != null) migraineVolume.weight = 0f;
         if (ketamineVolume != null) ketamineVolume.weight = 0f;
         if (hyperopiaVolume != null) hyperopiaVolume.weight = 0f;
+        if (macularVolume != null) macularVolume.weight = 0f;
 
         if (shroomsVolume != null)
         {
@@ -65,44 +63,31 @@ public class VisualEffectManager : MonoBehaviour
         }
 
         if (migraineMaskObject != null) migraineMaskObject.SetActive(false);
+        if (macularScotoma != null) macularScotoma.SetIntensity(0f);
 
         ReversePhiRenderFeature.isGlobalActive = false;
 
-        // 2. 讀取玩家在選擇場景設定的障礙類型 (0 = 正常)
         int selectedDefect = PlayerPrefs.GetInt("SelectedDefect", 0);
         Debug.Log("遊戲開始，載入障礙模式：" + selectedDefect);
 
-        // 3. 根據編號啟用對應狀態
         switch (selectedDefect)
         {
-            case 1:
-                isColorBlindActive = true;
-                break;
-            case 2:
-                isMyopiaActive = true;
-                break;
+            case 1: isColorBlindActive = true; break;
+            case 2: isMyopiaActive = true; break;
             case 3:
                 isMigraineActive = true;
                 if (migraineMaskObject != null) migraineMaskObject.SetActive(true);
                 break;
-            case 4:
-                isKetamineActive = true;
-                break;
-            case 5:
-                isHyperopiaActive = true;
-                break;
-            case 6:
-                isShroomsActive = true;
-                break;
-            case 7:
-                ReversePhiRenderFeature.isGlobalActive = true;
-                break;
+            case 4: isKetamineActive = true; break;
+            case 5: isHyperopiaActive = true; break;
+            case 6: isShroomsActive = true; break;
+            case 7: ReversePhiRenderFeature.isGlobalActive = true; break;
+            case 8: isMacularActive = true; break; // 編號 8 為黃斑部病變
         }
     }
 
     void OnDisable()
     {
-        // 離開場景或結束測試時，確保靜態開關歸零，避免殘留到選單場景
         ReversePhiRenderFeature.isGlobalActive = false;
     }
 
@@ -115,11 +100,16 @@ public class VisualEffectManager : MonoBehaviour
         UpdateVolumeWeight(hyperopiaVolume, isHyperopiaActive);
         UpdateVolumeWeight(shroomsVolume, isShroomsActive);
 
-        // 2. 動態運算 FOV 與位移 (相容 K他命與致幻蘑菇疊加)
+        // 2. 黃斑部病變（Volume 與中心暗點遮罩同步漸變）
+        float targetMacular = isMacularActive ? 1.0f : 0.0f;
+        macularWeight = Mathf.MoveTowards(macularWeight, targetMacular, transitionSpeed * Time.deltaTime);
+        if (macularVolume != null) macularVolume.weight = macularWeight;
+        if (macularScotoma != null) macularScotoma.SetIntensity(macularWeight);
+
+        // 3. 動態運算 FOV 與位移 (相容 K他命與致幻蘑菇疊加)
         float currentTargetFOV = baseFOV;
         Vector3 currentLocalPos = Vector3.zero;
 
-        // 【K他命解離邏輯】
         if (ketamineVolume != null)
         {
             float targetKWeight = isKetamineActive ? 1.0f : 0.0f;
@@ -135,7 +125,6 @@ public class VisualEffectManager : MonoBehaviour
             }
         }
 
-        // 【致幻蘑菇邏輯】
         if (shroomsVolume != null && shroomsVolume.weight > 0.01f)
         {
             currentTargetFOV += Mathf.Sin(Time.time * shroomBreatheSpeed) * shroomFovAmplitude * shroomsVolume.weight;
@@ -150,7 +139,6 @@ public class VisualEffectManager : MonoBehaviour
             shroomsColor.hueShift.value = 0f;
         }
 
-        // 套用相機變化 (遊戲暫停時不強行覆寫)
         if (mainCamera != null && Time.timeScale > 0f)
         {
             mainCamera.fieldOfView = currentTargetFOV;
@@ -167,6 +155,7 @@ public class VisualEffectManager : MonoBehaviour
             if (Keyboard.current.hKey.wasPressedThisFrame) ToggleHyperopia();
             if (Keyboard.current.sKey.wasPressedThisFrame) ToggleShrooms();
             if (Keyboard.current.pKey.wasPressedThisFrame) ToggleReversePhi();
+            if (Keyboard.current.bKey.wasPressedThisFrame) ToggleMacularDegeneration(); // 按 B 鍵測試黃斑部病變
         }
     }
 
@@ -185,6 +174,7 @@ public class VisualEffectManager : MonoBehaviour
     public void ToggleKetamine() => isKetamineActive = !isKetamineActive;
     public void ToggleShrooms() => isShroomsActive = !isShroomsActive;
     public void ToggleReversePhi() => ReversePhiRenderFeature.isGlobalActive = !ReversePhiRenderFeature.isGlobalActive;
+    public void ToggleMacularDegeneration() => isMacularActive = !isMacularActive;
 
     public void ToggleMigraineAura()
     {
@@ -200,9 +190,12 @@ public class VisualEffectManager : MonoBehaviour
         isKetamineActive = false;
         isHyperopiaActive = false;
         isShroomsActive = false;
+        isMacularActive = false;
+        macularWeight = 0f;
         ReversePhiRenderFeature.isGlobalActive = false;
 
         if (migraineMaskObject != null) migraineMaskObject.SetActive(false);
+        if (macularScotoma != null) macularScotoma.SetIntensity(0f);
 
         if (mainCamera != null)
         {
