@@ -168,7 +168,7 @@ public class PauseMenuManager : MonoBehaviour
     public void ReturnToDefectSelect()
     {
         Time.timeScale = 1f; 
-        SceneManager.LoadScene(1); 
+        SceneManager.LoadScene(2); 
     }
 
     public void ReturnToMainMenu()
